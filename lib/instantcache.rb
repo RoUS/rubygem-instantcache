@@ -1,9 +1,13 @@
 require 'memcache'
+require 'versionomy'
 #
 # Provide accessors that actually store the 'instance variables'
 # in memcached.
 #
 module InstantCache
+
+  Version = Versionomy.parse('0.1.0')
+  VERSION = Version.to_s.freeze
 
   class << self
 
@@ -18,7 +22,7 @@ module InstantCache
   # FIXME: the replacement of instance_variable_xxx isn't correct
   #
   def included(base_klass)
-    if (base_klass.methods(false)
+#    if (base_klass.methods(false))
     unless (base_klass.respond_to?(:_memcached_overridden_ivar_get))
       base_klass.__send__(:alias_method,
                           :_memcached_overridden_ivar_get,
@@ -208,14 +212,25 @@ module InstantCache
     
     Setup =<<-'EOT'
       def _initialise_%s
-        if (@%s.nil?)
+        unless (self.instance_variables.include?('@%s') \
+                && @%s.kind_of?(InstantCache::Blob))
           mvar = InstantCache::%s.new
           cellname = self.class.name
-          cellname << ':0x' << ((self.object_id << 1) & 0xffffffff).to_s(16)
+          cellname << self.object_id.to_s
           cellname << ':@%s'
-          mvar.instance_eval(%%Q{def name ; return '#{cellname}' ; end})
+          mvar.instance_eval(%%Q{
+            def name
+              return '#{cellname}'
+            end
+            def owner
+              return ObjectSpace._id2ref(#{self.object_id})
+            end})
           mvar.reset
           @%s = mvar
+          finaliser = Proc.new {
+            InstantCache.cache_object.delete('#{cellname}')
+          }
+          ObjectSpace.define_finalizer(mvar, finaliser)
           return true
         end
         return false
@@ -228,6 +243,14 @@ module InstantCache
       def %s_unlock
         self.__send__(:_initialise_%s)
         return @%s.unlock
+      end
+      def %s_expiry
+        self.__send__(:_initialise_%s)
+        return @%s.__send__(:expiry)
+      end
+      def %s_expiry=(val=0)
+        self.__send__(:_initialise_%s)
+        return @%s.__send__(:expiry=, val)
       end
     EOT
 
@@ -260,36 +283,36 @@ module InstantCache
 
     EigenReader = Proc.new { |*args|
       args.each do |ivar|
-        subslist = [ ivar.to_s ] * 11
-        subslist.insert(2, 'Blob')
+        subslist = [ ivar.to_s ] * 18
+        subslist.insert(3, 'Blob')
         class_eval(Setup % subslist)
-        subslist.delete_at(2)
-        class_eval(Reader % subslist)
+        subslist.delete_at(3)
+        class_eval(Reader % subslist[0, 3])
       end
       nil
     }                           # End of Proc EigenReader
 
     EigenAccessor = Proc.new { |*args|
       args.each do |ivar|
-        subslist = [ ivar.to_s ] * 11
-        subslist.insert(2, 'Blob')
+        subslist = [ ivar.to_s ] * 18
+        subslist.insert(3, 'Blob')
         class_eval(Setup % subslist)
-        subslist.delete_at(2)
-        class_eval(Reader % subslist)
-        class_eval(Writer % subslist)
+        subslist.delete_at(3)
+        class_eval(Reader % subslist[0, 3])
+        class_eval(Writer % subslist[0, 3])
       end
       nil
     }                           # End of Proc EigenAccessor
 
     EigenCounter = Proc.new { |*args|
       args.each do |ivar|
-        subslist = [ ivar.to_s ] * 22
-        subslist.insert(2, 'Counter')
+        subslist = [ ivar.to_s ] * 18
+        subslist.insert(3, 'Counter')
         class_eval(Setup % subslist)
-        subslist.delete_at(2)
-        class_eval(Reader % subslist)
-        class_eval(Writer % subslist)
-        class_eval(Counter % subslist)
+        subslist.delete_at(3)
+        class_eval(Reader % subslist[0, 3])
+        class_eval(Writer % subslist[0, 3])
+        class_eval(Counter % subslist[0, 10])
       end
       nil
     }                           # End of Proc EigenCounter
