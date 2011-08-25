@@ -18,6 +18,7 @@ module InstantCache
   # FIXME: the replacement of instance_variable_xxx isn't correct
   #
   def included(base_klass)
+    if (base_klass.methods(false)
     unless (base_klass.respond_to?(:_memcached_overridden_ivar_get))
       base_klass.__send__(:alias_method,
                           :_memcached_overridden_ivar_get,
@@ -208,14 +209,11 @@ module InstantCache
     Setup =<<-'EOT'
       def _initialise_%s
         if (@%s.nil?)
-          mvar = Clonepin::MemcachedVar::%s.new
+          mvar = InstantCache::%s.new
           cellname = self.class.name
           cellname << ':0x' << ((self.object_id << 1) & 0xffffffff).to_s(16)
           cellname << ':@%s'
-          mvar.instance_eval(%%Q{
-            def name
-              return '#{cellname}'
-            end})
+          mvar.instance_eval(%%Q{def name ; return '#{cellname}' ; end})
           mvar.reset
           @%s = mvar
           return true
