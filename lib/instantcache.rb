@@ -215,12 +215,12 @@ module InstantCache
         unless (self.instance_variables.include?('@%s') \
                 && @%s.kind_of?(InstantCache::Blob))
           mvar = InstantCache::%s.new
-          cellname = self.class.name
+          cellname = self.class.name + ':'
           cellname << self.object_id.to_s
           cellname << ':@%s'
           mvar.instance_eval(%%Q{
             def name
-              return '#{cellname}'
+              return '%s'
             end
             def owner
               return ObjectSpace._id2ref(#{self.object_id})
@@ -281,34 +281,51 @@ module InstantCache
       alias_method(:%s_decr, :%s_decrement)
     EOT
 
-    EigenReader = Proc.new { |*args|
+    EigenReader = Proc.new { |*args,&block|
       args.each do |ivar|
-        subslist = [ ivar.to_s ] * 18
-        subslist.insert(3, 'Blob')
+        ivar_s = ivar.to_s
+        if (block)
+          name = block.call(ivar)
+        end
+        name ||= '#{cellname}'
+        subslist = (([ ivar_s ] * 3) +
+                    [ 'Blob', ivar_s, name] +
+                    ([ ivar_s ] * 14))
         class_eval(Setup % subslist)
-        subslist.delete_at(3)
         class_eval(Reader % subslist[0, 3])
       end
       nil
     }                           # End of Proc EigenReader
 
-    EigenAccessor = Proc.new { |*args|
+    EigenAccessor = Proc.new { |*args,&block|
       args.each do |ivar|
-        subslist = [ ivar.to_s ] * 18
-        subslist.insert(3, 'Blob')
+        ivar_s = ivar.to_s
+        if (block)
+          name = block.call(ivar)
+        end
+        name ||= '#{cellname}'
+        subslist = (([ ivar_s ] * 3) +
+                    [ 'Blob', ivar_s, name] +
+                    ([ ivar_s ] * 14))
         class_eval(Setup % subslist)
-        subslist.delete_at(3)
         class_eval(Reader % subslist[0, 3])
         class_eval(Writer % subslist[0, 3])
       end
       nil
     }                           # End of Proc EigenAccessor
 
-    EigenCounter = Proc.new { |*args|
+    EigenCounter = Proc.new { |*args,&block|
       args.each do |ivar|
-        subslist = [ ivar.to_s ] * 18
-        subslist.insert(3, 'Counter')
+        ivar_s = ivar.to_s
+        if (block)
+          name = block.call(ivar)
+        end
+        name ||= '#{cellname}'
+        subslist = (([ ivar_s ] * 3) +
+                    [ 'Counter', ivar_s, name] +
+                    ([ ivar_s ] * 14))
         class_eval(Setup % subslist)
+        subslist.delete_at(5)
         subslist.delete_at(3)
         class_eval(Reader % subslist[0, 3])
         class_eval(Writer % subslist[0, 3])
