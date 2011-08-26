@@ -1,5 +1,6 @@
 require 'memcache'
 require 'versionomy'
+require 'lib/instantcache/exceptions'
 #
 # Provide accessors that actually store the 'instance variables'
 # in memcached.
@@ -8,6 +9,9 @@ module InstantCache
 
   Version = Versionomy.parse('0.1.0')
   VERSION = Version.to_s.freeze
+
+  SHARED	= :SHARED
+  PRIVATE	= :PRIVATE
 
   class << self
 
@@ -22,24 +26,23 @@ module InstantCache
   # FIXME: the replacement of instance_variable_xxx isn't correct
   #
   def included(base_klass)
-#    if (base_klass.methods(false))
-    unless (base_klass.respond_to?(:_memcached_overridden_ivar_get))
+    unless (base_klass.respond_to?(:memcached_variable_get))
       base_klass.__send__(:alias_method,
-                          :_memcached_overridden_ivar_get,
+                          :memcached_variable_get,
                           :instance_variable_get)
       def instance_variable_get(ivar)
-        val = self._memcached_overridden_ivar_get(ivar)
+        val = self.memcached_variable_get(ivar)
         return val unless (val.kind_of?(Blob))
         return val.get
       end
 
       base_klass.__send__(:alias_method,
-                          :_memcached_overridden_ivar_set,
+                          :memcached_variable_set,
                           :instance_variable_set)
       def instance_variable_set(ivar, ivar_val)
-        val = self._memcached_overridden_ivar_get(ivar)
+        val = self.memcached_variable_get(ivar)
         unless (val.kind_of?(Blob))
-          return self._memcached_overridden_ivar_set(ivar, ivar_val)
+          return self.memcached_variable_set(ivar, ivar_val)
         end
         return val.set(ivar_val)
       end
@@ -76,10 +79,14 @@ module InstantCache
     end
     
     def reset
+      raise Destroyed.new(self.name) if (self.destroyed?)
       rval = nil
       if (self.class.constants.include?('RESET_VALUE'))
         rval = self.class.const_get('RESET_VALUE')
       end
+      #
+      # TODO: This interferes with subclassing; better way to locate the cache
+      #
       InstantCache.cache_object.set(self.name, rval, self.expiry, self.rawmode)
       return rval
     end
@@ -90,7 +97,18 @@ module InstantCache
     def name
       raise RuntimeError.new('#name method must be defined in instance')
     end
-    
+
+    def destroyed?
+      return false
+    end
+
+    def destroy!
+      raise Destroyed.new(self.name) if (self.destroyed?)
+      self.unlock
+      self.instance_eval('def destroyed? ; return true ; end')
+      return nil
+    end
+
     #
     # Try to obtain an interlock on the memcached cell.  If successful,
     # returns true -- else, the cell is locked by someone else and
@@ -101,6 +119,7 @@ module InstantCache
     # interlock cell.
     #
     def lock
+      raise Destroyed.new(self.name) if (self.destroyed?)
       return true if (@locked)
       sts = InstantCache.cache_object.add(self.lock_name, true)
       @locked = (sts.to_s =~ %r!^STORED!) ? true : false
@@ -112,7 +131,7 @@ module InstantCache
     # interlock cell (allowing someone else's #lock(#add) to work).
     #
     def unlock
-      return false unless (@locked)
+      raise Destroyed.new(self.name) if (self.destroyed?)
       sts = InstantCache.cache_object.get(self.lock_name)
       if (sts != @locked)
         msg = ('memcache lock status inconsistency for %s: ' +
@@ -120,6 +139,7 @@ module InstantCache
         msg = msg % [ self.name, sts.inspect, @locked.inspect ]
         raise RuntimeError.new(msg)
       end
+      return false unless (@locked)
       @locked = false
       sts = InstantCache.cache_object.delete(self.lock_name)
       if (sts !~ %r!^DELETED!)
@@ -135,6 +155,7 @@ module InstantCache
     # Fetch the value out of memcached.
     #
     def get
+      raise Destroyed.new(self.name) if (self.destroyed?)
       return InstantCache.cache_object.get(self.name, self.rawmode)
     end
     alias_method(:read, :get)
@@ -143,6 +164,7 @@ module InstantCache
     # Write a value into memcached.
     #
     def set(val)
+      raise Destroyed.new(self.name) if (self.destroyed?)
       InstantCache.cache_object.add(self.name, val, self.expiry, self.rawmode)
       InstantCache.cache_object.set(self.name, val, self.expiry, self.rawmode)
       return self.get
@@ -154,6 +176,7 @@ module InstantCache
     # this instance.
     #
     def to_s(*args)
+      raise Destroyed.new(self.name) if (self.destroyed?)
       return self.get.__send__(:to_s, *args)
     end
     
@@ -194,6 +217,7 @@ module InstantCache
     # but it's atomic.
     #
     def increment(amt=1)
+      raise Destroyed.new(self.name) if (self.destroyed?)
       return InstantCache.cache_object.incr(self.name, amt)
     end
     alias_method(:incr, :increment)
@@ -202,6 +226,7 @@ module InstantCache
     # As for #increment.
     #
     def decrement(amt=1)
+      raise Destroyed.new(self.name) if (self.destroyed?)
       return InstantCache.cache_object.decr(self.name, amt)
     end
     alias_method(:decr, :decrement)
@@ -218,19 +243,31 @@ module InstantCache
           cellname = self.class.name + ':'
           cellname << self.object_id.to_s
           cellname << ':@%s'
+          shared = %s
           mvar.instance_eval(%%Q{
             def name
               return '%s'
             end
+            def shared?
+              return #{shared.inspect}
+            end
+            def private?
+              return (! self.shared?)
+            end
             def owner
               return ObjectSpace._id2ref(#{self.object_id})
             end})
-          mvar.reset
+          mvar.instance_variable_set(:@locked, false)
           @%s = mvar
-          finaliser = Proc.new {
-            InstantCache.cache_object.delete('#{cellname}')
-          }
-          ObjectSpace.define_finalizer(mvar, finaliser)
+          ObjectSpace.define_finalizer(mvar, Proc.new { mvar.unlock })
+          unless (shared)
+            mvar.reset
+            finaliser = Proc.new {
+              InstantCache.cache_object.delete(mvar.name)
+              InstantCache.cache_object.delete(mvar.lock_name)
+            }
+            ObjectSpace.define_finalizer(mvar, finaliser)
+          end
           return true
         end
         return false
@@ -251,6 +288,14 @@ module InstantCache
       def %s_expiry=(val=0)
         self.__send__(:_initialise_%s)
         return @%s.__send__(:expiry=, val)
+      end
+      def %s_reset
+        self.__send__(:_initialise_%s)
+        return @%s.__send__(:reset)
+      end
+      def %s_destroy!
+        self.__send__(:_initialise_%s)
+        return @%s.__send__(:destroy!)
       end
     EOT
 
@@ -282,6 +327,11 @@ module InstantCache
     EOT
 
     EigenReader = Proc.new { |*args,&block|
+      shared = false
+      if ([ :SHARED, :PRIVATE ].include?(args[0]))
+        shared = (args.shift == :SHARED)
+      end
+      shared = shared.inspect
       args.each do |ivar|
         ivar_s = ivar.to_s
         if (block)
@@ -289,8 +339,8 @@ module InstantCache
         end
         name ||= '#{cellname}'
         subslist = (([ ivar_s ] * 3) +
-                    [ 'Blob', ivar_s, name] +
-                    ([ ivar_s ] * 14))
+                    [ 'Blob', ivar_s, shared, name] +
+                    ([ ivar_s ] * 20))
         class_eval(Setup % subslist)
         class_eval(Reader % subslist[0, 3])
       end
@@ -298,6 +348,11 @@ module InstantCache
     }                           # End of Proc EigenReader
 
     EigenAccessor = Proc.new { |*args,&block|
+      shared = false
+      if ([ :SHARED, :PRIVATE ].include?(args[0]))
+        shared = (args.shift == :SHARED)
+      end
+      shared = shared.inspect
       args.each do |ivar|
         ivar_s = ivar.to_s
         if (block)
@@ -305,8 +360,8 @@ module InstantCache
         end
         name ||= '#{cellname}'
         subslist = (([ ivar_s ] * 3) +
-                    [ 'Blob', ivar_s, name] +
-                    ([ ivar_s ] * 14))
+                    [ 'Blob', ivar_s, shared, name] +
+                    ([ ivar_s ] * 20))
         class_eval(Setup % subslist)
         class_eval(Reader % subslist[0, 3])
         class_eval(Writer % subslist[0, 3])
@@ -315,6 +370,11 @@ module InstantCache
     }                           # End of Proc EigenAccessor
 
     EigenCounter = Proc.new { |*args,&block|
+      shared = false
+      if ([ :SHARED, :PRIVATE ].include?(args[0]))
+        shared = (args.shift == :SHARED)
+      end
+      shared = shared.inspect
       args.each do |ivar|
         ivar_s = ivar.to_s
         if (block)
@@ -322,9 +382,10 @@ module InstantCache
         end
         name ||= '#{cellname}'
         subslist = (([ ivar_s ] * 3) +
-                    [ 'Counter', ivar_s, name] +
-                    ([ ivar_s ] * 14))
+                    [ 'Counter', ivar_s, shared, name] +
+                    ([ ivar_s ] * 20))
         class_eval(Setup % subslist)
+        subslist.delete_at(6)
         subslist.delete_at(5)
         subslist.delete_at(3)
         class_eval(Reader % subslist[0, 3])

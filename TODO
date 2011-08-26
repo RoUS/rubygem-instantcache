@@ -1,4 +1,8 @@
-o Add a way for the names to be changed by the owner (perhaps a block,
-  like 'memcached_accessor(:foo, :bar) { |*args| "name" }' ?)
-  Otherwise there's no way to share these 'instance variables' between
-  objects..
+o Setting default values and adding finalisers is all well and good
+  when the variables are only used by a single entity -- but not so
+  hot when they're actually shared.  You don't want to
+  initialise-to-default an existing variable someone else was using
+  before you joined, and you don't want to delete a shared element
+  from the cache just because *you're* exiting.  Adding controls for
+  these needs to be a fairly high priority for this package to be
+  truly useful..
