@@ -1,3 +1,4 @@
+require 'thread'
 require 'memcache'
 require 'versionomy'
 require 'lib/instantcache/exceptions'
@@ -56,28 +57,30 @@ module InstantCache
   class Blob
 
     RESET_VALUE = nil
-    
+
     attr_accessor(:expiry)
     attr_reader(:rawmode)
-    attr_reader(:locked)
-    
-    #
-    # Not-for-public-consumption methods.
-    #
-    def lock_name
-      return self.name + '-lock'
-    end
-    protected(:lock_name)
-    
+    attr_reader(:locked_by_us)
+    attr_reader(:identity)
+
     #
     # Constructor of a non-raw object.
     #
     def initialize(inival=nil)
-      @rawmode = false
+      @rawmode ||= false
       @expiry = 0
+      @locked_by_us = false
+      idfmt = 'host[%s]:pid[%d]:thread[%d]:%s[%d]'
+      idargs = []
+      idargs << `hostname`.chomp.strip
+      idargs << $$
+      idargs << Thread.current.object_id
+      idargs << self.class.name.sub(%r!^.*::!, '')
+      idargs << self.object_id
+      @identity = idfmt % idargs
       self.set(inival) unless(inival.nil?)
     end
-    
+
     def reset
       raise Destroyed.new(self.name) if (self.destroyed?)
       rval = nil
@@ -90,7 +93,7 @@ module InstantCache
       InstantCache.cache_object.set(self.name, rval, self.expiry, self.rawmode)
       return rval
     end
-    
+
     #
     # Used to determine the name of the memcache cell.
     #
@@ -110,6 +113,14 @@ module InstantCache
     end
 
     #
+    # Not-for-public-consumption methods.
+    #
+    def lock_name
+      return self.name + '-lock'
+    end
+    protected(:lock_name)
+
+    #
     # Try to obtain an interlock on the memcached cell.  If successful,
     # returns true -- else, the cell is locked by someone else and
     # we should proceed accordingly.
@@ -119,38 +130,44 @@ module InstantCache
     # interlock cell.
     #
     def lock
+#debugger
       raise Destroyed.new(self.name) if (self.destroyed?)
-      return true if (@locked)
-      sts = InstantCache.cache_object.add(self.lock_name, true)
-      @locked = (sts.to_s =~ %r!^STORED!) ? true : false
-      return @locked
+      return true if (@locked_by_us)
+      sts = InstantCache.cache_object.add(self.lock_name, @identity)
+      @locked_by_us = (sts.to_s =~ %r!^STORED!) ? true : false
+      return @locked_by_us
     end
-    
+
     #
     # If we have the cell locked, unlock it by deleting the
     # interlock cell (allowing someone else's #lock(#add) to work).
     #
     def unlock
+#debugger
       raise Destroyed.new(self.name) if (self.destroyed?)
-      sts = InstantCache.cache_object.get(self.lock_name)
-      if (sts != @locked)
-        msg = ('memcache lock status inconsistency for %s: ' +
-               'memcache=%s, @locked=%s')
-        msg = msg % [ self.name, sts.inspect, @locked.inspect ]
-        raise RuntimeError.new(msg)
+      sts = InstantCache.cache_object.get(self.lock_name) || false
+      if (@locked_by_us && (sts != @identity))
+        #
+        # If we show we have the lock, but the lock cell doesn't exist
+        # (or isn't us), that's definitely an inconsistency.
+        #
+        e = LockInconsistency.new(self.lock_name,
+                                  @identity,
+                                  sts.inspect)
+        raise e
       end
-      return false unless (@locked)
-      @locked = false
+      return false unless (@locked_by_us)
+      @locked_by_us = false
       sts = InstantCache.cache_object.delete(self.lock_name)
       if (sts !~ %r!^DELETED!)
-        msg = ('memcache lock status inconsistency for %s: ' +
-               'memcache=%s, expected="DELETED"')
-        msg = msg % [ self.name, sts.to_s.chomp.inspect ]
-        raise RuntimeError.new(msg)
+        e = LockInconsistency.new(self.lock_name,
+                                  '/DELETED/',
+                                  sts.inspect)
+        raise e
       end
       return true
     end
-    
+
     #
     # Fetch the value out of memcached.
     #
@@ -159,7 +176,7 @@ module InstantCache
       return InstantCache.cache_object.get(self.name, self.rawmode)
     end
     alias_method(:read, :get)
-    
+
     #
     # Write a value into memcached.
     #
@@ -170,7 +187,7 @@ module InstantCache
       return self.get
     end
     alias_method(:write, :set)
-    
+
     #
     # Just return the string representaton of the value, not
     # this instance.
@@ -179,24 +196,23 @@ module InstantCache
       raise Destroyed.new(self.name) if (self.destroyed?)
       return self.get.__send__(:to_s, *args)
     end
-    
+
   end                           # End of class Blob
-  
+
   #
   # Class for integer-only memcache cells, capable of atomic
   # increment/decrement.  Basically the same as Blob, except
   # with rawmode forced to true.
   #
   class Counter < Blob
-    
+
     RESET_VALUE = 0
-    
+
     def initialize(inival=nil)
       @rawmode = true
-      @expiry = 0
-      self.set(inival) unless (inival.nil?)
+      super
     end
-    
+
     #
     # Get the value through the superclass, and convert to integer.
     # (Raw values get stored as strings, since they're unmarshalled.)
@@ -204,14 +220,14 @@ module InstantCache
     def get
       return super.to_i
     end
-    
+
     #
     # Store a value as an integer, and return it.
     #
     def set(val)
       return super(val.to_i).to_i
     end
-    
+
     #
     # Increment a memcached raw cell.  This *only* works in raw mode,
     # but it's atomic.
@@ -221,7 +237,7 @@ module InstantCache
       return InstantCache.cache_object.incr(self.name, amt)
     end
     alias_method(:incr, :increment)
-    
+
     #
     # As for #increment.
     #
@@ -230,11 +246,11 @@ module InstantCache
       return InstantCache.cache_object.decr(self.name, amt)
     end
     alias_method(:decr, :decrement)
-    
+
   end                           # End of class Counter < Blob
-  
+
   class << self
-    
+
     Setup =<<-'EOT'
       def _initialise_%s
         unless (self.instance_variables.include?('@%s') \
@@ -244,6 +260,7 @@ module InstantCache
           cellname << self.object_id.to_s
           cellname << ':@%s'
           shared = %s
+          owner = ObjectSpace._id2ref(self.object_id)
           mvar.instance_eval(%%Q{
             def name
               return '%s'
@@ -257,16 +274,15 @@ module InstantCache
             def owner
               return ObjectSpace._id2ref(#{self.object_id})
             end})
-          mvar.instance_variable_set(:@locked, false)
           @%s = mvar
-          ObjectSpace.define_finalizer(mvar, Proc.new { mvar.unlock })
+          ObjectSpace.define_finalizer(owner, Proc.new { mvar.unlock })
           unless (shared)
             mvar.reset
             finaliser = Proc.new {
               InstantCache.cache_object.delete(mvar.name)
-              InstantCache.cache_object.delete(mvar.lock_name)
+              InstantCache.cache_object.delete(mvar.send(:lock_name))
             }
-            ObjectSpace.define_finalizer(mvar, finaliser)
+            ObjectSpace.define_finalizer(owner, finaliser)
           end
           return true
         end
@@ -408,7 +424,7 @@ module InstantCache
                                EigenCounter)
       return nil
     end                         # End of def included
-    
+
   end                           # End of module InstantCache eigenclass
 
   #

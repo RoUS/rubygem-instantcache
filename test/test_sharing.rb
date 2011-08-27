@@ -40,6 +40,7 @@ class TestInstantCache_02 < Test::Unit::TestCase
     if (InstantCache.cache_object.nil?)
       InstantCache.cache_object = MemCache.new('127.0.0.1:11211')
     end
+#    InstantCache.cache_object.flush_all
     if (self.class.const_defined?(:TestClass))
       self.class.class_eval('remove_const(:TestClass)')
     end
@@ -114,6 +115,7 @@ class TestInstantCache_02 < Test::Unit::TestCase
     main_obj = get_object
     test_obj = get_object
     VARS.each do |ivar_s|
+#debugger
       ivar_sym = ivar_s.to_sym
       main_var = main_obj.instance_variable_get("@#{ivar_s}".to_sym)
       test_var = test_obj.instance_variable_get("@#{ivar_s}".to_sym)

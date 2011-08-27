@@ -25,21 +25,25 @@ module InstantCache
   end
 
   class IncompleteException < InstantCache::Exception
-
     MessageFormat = [
                      'improperly-coded exception raised',
                      'improperly-coded exception "%s" raised',
                     ]
-
   end
 
   class Destroyed < InstantCache::Exception
-
     MessageFormat = [
                      'attempt to access destroyed variable',
                      'attempt to access destroyed variable "%s"',
                     ]
+  end
 
+  class LockInconsistency < InstantCache::Exception
+    MessageFormat = [
+                     'interlock cell inconsistency',
+                     "interlock cell inconsistency\n" +
+                     "\tcell='%s', expected='%s', actual='%s'",
+                    ]
   end
 
 end                             # End of module InstantCache
