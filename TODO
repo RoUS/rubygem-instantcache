@@ -6,3 +6,4 @@ o Setting default values and adding finalisers is all well and good
   from the cache just because *you're* exiting.  Adding controls for
   these needs to be a fairly high priority for this package to be
   truly useful..
+o Should private variables be allowed to have user-set names?

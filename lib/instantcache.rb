@@ -343,19 +343,22 @@ module InstantCache
     EOT
 
     EigenReader = Proc.new { |*args,&block|
-      shared = false
+      shared = true
       if ([ :SHARED, :PRIVATE ].include?(args[0]))
         shared = (args.shift == :SHARED)
       end
-      shared = shared.inspect
       args.each do |ivar|
         ivar_s = ivar.to_s
         if (block)
-          name = block.call(ivar)
+          if (shared)
+            name = block.call(ivar)
+          else
+            raise SharedOnly.new(ivar.to_sym.inspect)
+          end
         end
         name ||= '#{cellname}'
         subslist = (([ ivar_s ] * 3) +
-                    [ 'Blob', ivar_s, shared, name] +
+                    [ 'Blob', ivar_s, shared.inspect, name] +
                     ([ ivar_s ] * 20))
         class_eval(Setup % subslist)
         class_eval(Reader % subslist[0, 3])
@@ -364,19 +367,22 @@ module InstantCache
     }                           # End of Proc EigenReader
 
     EigenAccessor = Proc.new { |*args,&block|
-      shared = false
+      shared = true
       if ([ :SHARED, :PRIVATE ].include?(args[0]))
         shared = (args.shift == :SHARED)
       end
-      shared = shared.inspect
       args.each do |ivar|
         ivar_s = ivar.to_s
         if (block)
-          name = block.call(ivar)
+          if (shared)
+            name = block.call(ivar)
+          else
+            raise SharedOnly.new(ivar.to_sym.inspect)
+          end
         end
         name ||= '#{cellname}'
         subslist = (([ ivar_s ] * 3) +
-                    [ 'Blob', ivar_s, shared, name] +
+                    [ 'Blob', ivar_s, shared.inspect, name] +
                     ([ ivar_s ] * 20))
         class_eval(Setup % subslist)
         class_eval(Reader % subslist[0, 3])
@@ -386,19 +392,22 @@ module InstantCache
     }                           # End of Proc EigenAccessor
 
     EigenCounter = Proc.new { |*args,&block|
-      shared = false
+      shared = true
       if ([ :SHARED, :PRIVATE ].include?(args[0]))
         shared = (args.shift == :SHARED)
       end
-      shared = shared.inspect
       args.each do |ivar|
         ivar_s = ivar.to_s
         if (block)
-          name = block.call(ivar)
+          if (shared)
+            name = block.call(ivar)
+          else
+            raise SharedOnly.new(ivar.to_sym.inspect)
+          end
         end
         name ||= '#{cellname}'
         subslist = (([ ivar_s ] * 3) +
-                    [ 'Counter', ivar_s, shared, name] +
+                    [ 'Counter', ivar_s, shared.inspect, name] +
                     ([ ivar_s ] * 20))
         class_eval(Setup % subslist)
         subslist.delete_at(6)
