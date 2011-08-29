@@ -1,4 +1,41 @@
-# -*- coding: undecided -*-
+# -*- coding: utf-8 -*-
+#
+# = instantcache.rb - InstantCache module
+#
+# Author::      Ken Coar
+# Copyright::   Copyright © 2011 Ken Coar
+# License::     Apache Licence 2.0
+#
+# == Synopsis
+#
+#    require 'rubygems'
+#    require 'memcache'
+#    require 'instantcache'
+#    InstantCache.cache_object = MemCache.new('127.0.0.1:11211')
+#
+#    class Foo
+#      include InstantCache
+#      memcached_accessor(:bar)
+#    end
+#
+#    f = Foo.new
+#    f.bar
+#    => nil
+#    f.bar = f
+#    => #<Foo:0xb7438c64 @bar=#<InstantCache::Blob:0xc74f882>>
+#    f.bar = %w( one two three )
+#    => ["one","two","three"]
+#    f.bar[1,1]
+#    => "two"
+#    f.bar_destroy!
+#    => nil
+#    f.bar
+#    InstantCache::Destroyed: attempt to access destroyed variable
+#
+# == Description
+#
+# Shash is like a Hash, except that you can access different levels
+# using method syntax.
 #-
 #   Copyright 2011 © Ken Coar
 #
@@ -43,28 +80,50 @@ module InstantCache
   # FIXME: the replacement of instance_variable_xxx isn't correct
   #
   def included(base_klass)
-    unless (base_klass.respond_to?(:memcached_variable_get))
-      base_klass.__send__(:alias_method,
-                          :memcached_variable_get,
-                          :instance_variable_get)
-      def instance_variable_get(ivar)
-        val = self.memcached_variable_get(ivar)
-        return val unless (val.kind_of?(Blob))
-        return val.get
-      end
+#    unless (base_klass.respond_to?(:memcached_variable_get))
+#      base_klass.__send__(:alias_method,
+#                          :memcached_variable_get,
+#                          :instance_variable_get)
+#      def instance_variable_get(ivar)
+#        val = self.memcached_variable_get(ivar)
+#        return val unless (val.kind_of?(Blob))
+#        return val.get
+#      end
 
-      base_klass.__send__(:alias_method,
-                          :memcached_variable_set,
-                          :instance_variable_set)
-      def instance_variable_set(ivar, ivar_val)
-        val = self.memcached_variable_get(ivar)
-        unless (val.kind_of?(Blob))
-          return self.memcached_variable_set(ivar, ivar_val)
-        end
-        return val.set(ivar_val)
-      end
+#      base_klass.__send__(:alias_method,
+#                          :memcached_variable_set,
+#                          :instance_variable_set)
+#      def instance_variable_set(ivar, ivar_val)
+#        val = self.memcached_variable_get(ivar)
+#        unless (val.kind_of?(Blob))
+#          return self.memcached_variable_set(ivar, ivar_val)
+#        end
+#        return val.set(ivar_val)
+#      end
+#    end
+
+  end
+
+  def method_missing(meth, *args)
+    debugger
+    meth_sym = meth.to_sym
+    #
+    # Pass through any private methods.
+    # TODO: How to handle the privacy part?
+    #
+    self.__send__(meth_sym, *args) if (self.respond_to?(meth_sym))
+    meth_s = meth_sym.to_s
+    basename = meth_s.sub(%r!^([_a-z0-9]*).*!i, '\1')
+    varname = '@' + basename
+    if (self.instance_variables.include?(varname) \
+        && (ivar = self.instance_variable_get(varname.to_sym)).kind_of?(Blob))
+      #
+      # We have a method intended for one of our special kinder.
+      #
+      nxtmeth_s = meth_s.sub(%r!^#{basename}\.?!, '')
+      return ivar.__send__(nxtmeth_s.to_sym, *args)
     end
-
+    return super
   end
 
   #
@@ -146,7 +205,7 @@ module InstantCache
     # interlock cell.
     #
     def lock
-#debugger
+      #debugger
       raise Destroyed.new(self.name) if (self.destroyed?)
       return true if (@locked_by_us)
       sts = InstantCache.cache_object.add(self.lock_name, @identity)
@@ -159,7 +218,7 @@ module InstantCache
     # interlock cell (allowing someone else's #lock(#add) to work).
     #
     def unlock
-#debugger
+      #debugger
       raise Destroyed.new(self.name) if (self.destroyed?)
       sts = InstantCache.cache_object.get(self.lock_name) || false
       if (@locked_by_us && (sts != @identity))
@@ -213,6 +272,19 @@ module InstantCache
       return self.get.__send__(:to_s, *args)
     end
 
+    def method_missing(meth, *args)
+      debugger
+      methsym = meth.to_sym
+      return self.__send__(methsym, *args) if (self.respond_to?(methsym))
+      curval = self.get
+      lastval = curval.clone
+      opresult = curval.__send__(methsym, *args)
+      if (curval != lastval)
+        self.set(curval)
+      end
+      return opresult
+    end
+
   end                           # End of class Blob
 
   #
@@ -241,6 +313,9 @@ module InstantCache
     # Store a value as an integer, and return it.
     #
     def set(val)
+      unless (val.kind_of?(Integer))
+        raise CounterIntegerOnly.new(self.ivar_name.inspect)
+      end
       return super(val.to_i).to_i
     end
 
@@ -332,10 +407,10 @@ module InstantCache
     EOT
 
     Reader =<<-'EOT'
-      def %s
-        self.__send__(:_initialise_%s)
-        return @%s.get
-      end
+#      def %s
+#        self.__send__(:_initialise_%s)
+#        return @%s.get
+#      end
     EOT
 
     Writer =<<-'EOT'

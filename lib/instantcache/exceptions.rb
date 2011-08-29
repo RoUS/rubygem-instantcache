@@ -1,4 +1,4 @@
-# -*- coding: undecided -*-
+# -*- coding: utf-8 -*-
 #-
 #   Copyright 2011 © Ken Coar
 #
@@ -82,6 +82,17 @@ module InstantCache
                      'custom names are only permitted for shared variables',
                      'custom names are only permitted for shared variables; ' +
                      "'%s' is labelled as private",
+                    ]
+  end
+
+  #
+  # Counter variables are only permitted to be frobbed with integers.
+  # We gritch if anything else is attempted.
+  #
+  class CounterIntegerOnly < InstantCache::Exception
+    MessageFormat = [
+                     'variables declared as counters are integer-only',
+                     'variables declared as counters are integer-only: %s',
                     ]
   end
 

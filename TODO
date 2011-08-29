@@ -1,3 +1,6 @@
+o The whole setting-up-accessors bit is kludgy and messy.  Too much
+  quoted and eval'd and sprintf'd stuff..  it needs some desperate
+  reworking towards elegance.
 o Setting default values and adding finalisers is all well and good
   when the variables are only used by a single entity -- but not so
   hot when they're actually shared.  You don't want to
