@@ -7,3 +7,6 @@ o Setting default values and adding finalisers is all well and good
   these needs to be a fairly high priority for this package to be
   truly useful..
 o Should private variables be allowed to have user-set names?
+  [For now, no.]
+o Need to test true sharing, in which cell names are *not* necessarily
+  unique to each test, and may be left around between them

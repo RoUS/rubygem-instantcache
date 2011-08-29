@@ -3,7 +3,7 @@ require 'thread'
 require 'ruby-debug'
 Debugger.start
 
-class TestInstantCacheWithClearedMemPerTest < Test::Unit::TestCase
+class TestInstantCacheSimpleSharing < Test::Unit::TestCase
 
   TestClass_def = <<-'EOT'
     class TestClass
@@ -33,6 +33,8 @@ class TestInstantCacheWithClearedMemPerTest < Test::Unit::TestCase
       #
       self.class.const_set('TestName',
                            Proc.new {
+                             self.class.name +
+                             '::' +
                              self.instance_variable_get(:@method_name)
                            })
     end
@@ -81,7 +83,7 @@ class TestInstantCacheWithClearedMemPerTest < Test::Unit::TestCase
       #
       next if (ivar_s[0,1] == 'p')
       ivar_sym = ivar_s.to_sym
-      expected = '%s-%s' % [ @method_name, ivar_s ]
+      expected = '%s-%s' % [ TestName.call, ivar_s ]
       test_val = test_obj.instance_variable_get("@#{ivar_s}".to_sym).name
       assert_equal(expected, test_val,
                    "@#{ivar_s}'s name should be '#{expected}'")

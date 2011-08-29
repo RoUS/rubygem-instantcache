@@ -3,7 +3,7 @@ require 'thread'
 require 'ruby-debug'
 Debugger.start
 
-class TestInstantCacheWithClearedMemPerTest < Test::Unit::TestCase
+class TestInstantCacheComplexSharing < Test::Unit::TestCase
 
   TestClass_def = <<-'EOT'
     class TestClass
@@ -33,7 +33,7 @@ class TestInstantCacheWithClearedMemPerTest < Test::Unit::TestCase
       #
       self.class.const_set('TestName',
                            Proc.new {
-                             self.instance_variable_get(:@method_name)
+                             self.class.name
                            })
     end
     #
@@ -42,11 +42,6 @@ class TestInstantCacheWithClearedMemPerTest < Test::Unit::TestCase
     if (InstantCache.cache_object.nil?)
       InstantCache.cache_object = MemCache.new('127.0.0.1:11211')
     end
-    #
-    # Clean out all data before beginning testing; this gets repeated
-    # before each test so they occur in isolation.
-    #
-#    InstantCache.cache_object.flush_all
     if (self.class.const_defined?(:TestClass))
       self.class.class_eval('remove_const(:TestClass)')
     end
@@ -54,12 +49,9 @@ class TestInstantCacheWithClearedMemPerTest < Test::Unit::TestCase
   end
 
   def teardown
-    unless (self.class.const_defined?(:TestClass))
-      self.class.class_eval(TestClass_def)
+    if (self.class.const_defined?(:TestClass))
+      self.class.class_eval('remove_const(:TestClass)')
     end
-    cleanup = TestClass.new
-    VARS.each { |ivar_s| cleanup.send("#{ivar_s}_destroy!".to_sym) }
-    self.class.class_eval('remove_const(:TestClass)')
   end
 
   def get_object
@@ -79,6 +71,7 @@ class TestInstantCacheWithClearedMemPerTest < Test::Unit::TestCase
 
   def test_01_test_custom_names
     test_obj = get_object
+    test_obj2 = get_object
     VARS.each do |ivar_s|
       #
       # Skip over the private ones for now, since we're not sure of their
@@ -86,23 +79,50 @@ class TestInstantCacheWithClearedMemPerTest < Test::Unit::TestCase
       #
       next if (ivar_s[0,1] == 'p')
       ivar_sym = ivar_s.to_sym
-      expected = '%s-%s' % [ @method_name, ivar_s ]
-      test_val = test_obj.instance_variable_get("@#{ivar_s}".to_sym).name
+      expected = '%s-%s' % [ TestName.call, ivar_s ]
+      test_var = test_obj.instance_variable_get("@#{ivar_s}".to_sym)
+      test_val = test_var.name
       assert_equal(expected, test_val,
-                   "@#{ivar_s}'s name should be '#{expected}'")
+                   "test_obj:@#{ivar_s}'s name should be '#{expected}'")
+      test_var2 = test_obj2.instance_variable_get("@#{ivar_s}".to_sym)
+      test_val2 = test_var2.name
+      assert_equal(expected, test_val2,
+                   "test_obj2:@#{ivar_s}'s name should be '#{expected}'")
+      assert_equal(test_val, test_val2,
+                   "@#{ivar_s} should have the same name for both variables")
+      #
+      # Lock the cell for the next test.
+      #
+      assert(test_var.lock,
+             "test_var:@#{ivar_s} should be locked")
+      test_var.destroy!
+      assert_raises(InstantCache::Destroyed,
+                    "test_var:@#{ivar_s} should be destroyed and not let us " +
+                    '.destroy! it again') do
+        test_var.destroy!
+      end
+      assert_raises(InstantCache::Destroyed,
+                    "test_var:@#{ivar_s} should be destroyed and not let us " +
+                    'fetch it') do
+        test_var.get
+      end
+      assert_raises(InstantCache::Destroyed,
+                    "test_var:@#{ivar_s} should be destroyed and not let us " +
+                    '_destroy! it again') do
+        test_obj.send("#{ivar_s}_destroy!".to_sym)
+      end
     end
   end
 
-  def test_02_test_sharedness
+  def test_02_test_that_destroy_unlocks
     test_obj = get_object
     VARS.each do |ivar_s|
       ivar_sym = ivar_s.to_sym
       test_var = test_obj.instance_variable_get("@#{ivar_s}".to_sym)
-      expect_shared = (ivar_s =~ %r!^p!) ? false : true
-      assert_equal(expect_shared, test_var.shared?,
-                   "@#{ivar_s}.shared? should be #{expect_shared.inspect}")
-      assert_not_equal(expect_shared, test_var.private?,
-                       "@#{ivar_s}.private? should not be #{expect_shared.inspect}")
+      assert(test_var.lock,
+             "Should be able to lock test_obj:@#{ivar_s} (#{test_var.name}) " +
+             'after destruction in previous test')
+      test_var.destroy!
     end
   end
 
