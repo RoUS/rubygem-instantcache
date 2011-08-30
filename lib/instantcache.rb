@@ -83,53 +83,43 @@ module InstantCache
     class << self
 
       def included(klass)
-        
-        unless (klass.singleton_methods.include?('__send__instantcache'))
-          klass.__send__(:alias_method, :__send__instantcache, :__send__)
-        def __send__(meth_sym, *args)
-debugger
-        oldself = self.clone
-        result = self.__send__instantcache(meth_sym, *args)
-        if (self != oldself)
-          owner_instance = self.instance_variable_get(:@instantcache_owner)
-          owner_instance.set(self)
+        #
+        # Shamelessly cadged from delegator.rb
+        #
+        eigenklass = eval('class << klass ; self ; end')
+        preserved = ::Kernel.public_instance_methods(false)
+        preserved -= [ 'to_s', 'to_a', 'inspect', '==', '=~', '===' ]
+        swbd = {}
+        klass.instance_variable_set(:@_instantcache_method_map, swbd)
+        for t in self.class.ancestors
+          preserved |= t.public_instance_methods(false)
+          preserved |= t.private_instance_methods(false)
+          preserved |= t.protected_instance_methods(false)
         end
-        return result
-      end
-    end
+        preserved << 'singleton_method_added'
+        klass.methods.each do |method|
+          next if (preserved.include?(method))
+          swbd[method] = klass.method(method.to_sym)
+          klass.instance_eval(<<-EOS)
+            def #{method}(*args, &block)
+              iniself = self.clone
+              result = @_instantcache_method_map['#{method}'].call(*args, &block)
+              if (self != iniself)
+                #
+                # Store the changed entity
+                #
+                owner = self.instance_variable_get(:@_instantcache_owner)
+                owner.set(self)
+              end
+              return result
+            end
+          EOS
+        end
+      end                       # End of def included
 
-  end
+    end                         # End of module InstantCache::Sender eigenclass
 
-  #
-  # We try to make our 'instance variables' act like the real thing,
-  # even though they're objects wrapping memcached cells.
-  #
-  # FIXME: the replacement of instance_variable_xxx isn't correct
-  #
-  def included(base_klass)
-#    unless (base_klass.respond_to?(:memcached_variable_get))
-#      base_klass.__send__(:alias_method,
-#                          :memcached_variable_get,
-#                          :instance_variable_get)
-#      def instance_variable_get(ivar)
-#        val = self.memcached_variable_get(ivar)
-#        return val unless (val.kind_of?(Blob))
-#        return val.get
-#      end
-
-#      base_klass.__send__(:alias_method,
-#                          :memcached_variable_set,
-#                          :instance_variable_set)
-#      def instance_variable_set(ivar, ivar_val)
-#        val = self.memcached_variable_get(ivar)
-#        unless (val.kind_of?(Blob))
-#          return self.memcached_variable_set(ivar, ivar_val)
-#        end
-#        return val.set(ivar_val)
-#      end
-#    end
-
-  end
+  end                           # End of module InstantCache::Sender
 
   #
   # Class for J Random Arbitrary Data stored in memcache.
@@ -210,7 +200,6 @@ debugger
     # interlock cell.
     #
     def lock
-      #debugger
       raise Destroyed.new(self.name) if (self.destroyed?)
       return true if (@locked_by_us)
       sts = InstantCache.cache_object.add(self.lock_name, @identity)
@@ -223,7 +212,6 @@ debugger
     # interlock cell (allowing someone else's #lock(#add) to work).
     #
     def unlock
-      #debugger
       raise Destroyed.new(self.name) if (self.destroyed?)
       sts = InstantCache.cache_object.get(self.lock_name) || false
       if (@locked_by_us && (sts != @identity))
@@ -254,11 +242,11 @@ debugger
     def get
       raise Destroyed.new(self.name) if (self.destroyed?)
       value = InstantCache.cache_object.get(self.name, self.rawmode)
-debugger
       begin
         value.clone
-        value.instance_variable_set(:@instantcache_owner, self)
+        value.instance_variable_set(:@_instantcache_owner, self)
         value.extend(InstantCache::Sender)
+        InstantCache::Sender.included(value)
       rescue
         #
         # If the value was something we couldn't clone, like a Fixnum,
@@ -274,8 +262,22 @@ debugger
     #
     def set(val_p)
       raise Destroyed.new(self.name) if (self.destroyed?)
-      val = val_p.clone
-      eval('class << val ; remove_method(:__send__instantcache, :__send__) ; end')
+      begin
+        val = val_p.clone
+      rescue TypeError => e
+        val = val_p
+      end
+      remap = val.instance_variable_get(:@_instantcache_method_map)
+      if (remap.kind_of?(Hash))
+        remap.keys.each do |method|
+          begin
+            eval("class << val ; remove_method(:#{method}) ; end")
+          rescue
+          end
+        end
+        val.instance_variable_set(:@_instantcache_method_map, nil)
+        val.instance_variable_set(:@_instantcache_owner, nil)
+      end
       InstantCache.cache_object.add(self.name, val, self.expiry, self.rawmode)
       InstantCache.cache_object.set(self.name, val, self.expiry, self.rawmode)
       return self.get
@@ -292,7 +294,6 @@ debugger
     end
 
     def method_missing(meth, *args)
-      debugger
       methsym = meth.to_sym
       return self.__send__(methsym, *args) if (self.respond_to?(methsym))
       curval = self.get
