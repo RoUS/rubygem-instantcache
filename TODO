@@ -1,3 +1,5 @@
+TODO items -- and various notes as well
+
 o The whole setting-up-accessors bit is kludgy and messy.  Too much
   quoted and eval'd and sprintf'd stuff..  it needs some desperate
   reworking towards elegance.
@@ -13,3 +15,10 @@ o Should private variables be allowed to have user-set names?
   [For now, no.]
 o Need to test true sharing, in which cell names are *not* necessarily
   unique to each test, and may be left around between them
+o Making the wrapper transparent is turning out to be a bugger.  Using
+  the Delegator mechanism breaks #kind_of?, and using __send__ to
+  intercept methods isn't working (at least in Ruby 1.8.7).
+  - Idea: Extract all the methods from the object using obj#method,
+    and store them in a hash.  Override the methods with code that
+    invokes the saved method and does the check for changed content?
+    That way it still retains its inheritance..

@@ -51,10 +51,15 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 #+
+require 'delegate'
 require 'thread'
 require 'memcache'
 require 'versionomy'
 require 'lib/instantcache/exceptions'
+
+require 'ruby-debug'
+Debugger.start
+
 #
 # Provide accessors that actually store the 'instance variables'
 # in memcached.
@@ -70,6 +75,28 @@ module InstantCache
   class << self
 
     attr_accessor(:cache_object)
+
+  end
+
+  module Sender
+
+    class << self
+
+      def included(klass)
+        
+        unless (klass.singleton_methods.include?('__send__instantcache'))
+          klass.__send__(:alias_method, :__send__instantcache, :__send__)
+        def __send__(meth_sym, *args)
+debugger
+        oldself = self.clone
+        result = self.__send__instantcache(meth_sym, *args)
+        if (self != oldself)
+          owner_instance = self.instance_variable_get(:@instantcache_owner)
+          owner_instance.set(self)
+        end
+        return result
+      end
+    end
 
   end
 
@@ -102,28 +129,6 @@ module InstantCache
 #      end
 #    end
 
-  end
-
-  def method_missing(meth, *args)
-    debugger
-    meth_sym = meth.to_sym
-    #
-    # Pass through any private methods.
-    # TODO: How to handle the privacy part?
-    #
-    self.__send__(meth_sym, *args) if (self.respond_to?(meth_sym))
-    meth_s = meth_sym.to_s
-    basename = meth_s.sub(%r!^([_a-z0-9]*).*!i, '\1')
-    varname = '@' + basename
-    if (self.instance_variables.include?(varname) \
-        && (ivar = self.instance_variable_get(varname.to_sym)).kind_of?(Blob))
-      #
-      # We have a method intended for one of our special kinder.
-      #
-      nxtmeth_s = meth_s.sub(%r!^#{basename}\.?!, '')
-      return ivar.__send__(nxtmeth_s.to_sym, *args)
-    end
-    return super
   end
 
   #
@@ -248,15 +253,29 @@ module InstantCache
     #
     def get
       raise Destroyed.new(self.name) if (self.destroyed?)
-      return InstantCache.cache_object.get(self.name, self.rawmode)
+      value = InstantCache.cache_object.get(self.name, self.rawmode)
+debugger
+      begin
+        value.clone
+        value.instance_variable_set(:@instantcache_owner, self)
+        value.extend(InstantCache::Sender)
+      rescue
+        #
+        # If the value was something we couldn't clone, like a Fixnum,
+        # it's inherently immutable.  That's our position ayup.
+        #
+      end
+      return value
     end
     alias_method(:read, :get)
 
     #
     # Write a value into memcached.
     #
-    def set(val)
+    def set(val_p)
       raise Destroyed.new(self.name) if (self.destroyed?)
+      val = val_p.clone
+      eval('class << val ; remove_method(:__send__instantcache, :__send__) ; end')
       InstantCache.cache_object.add(self.name, val, self.expiry, self.rawmode)
       InstantCache.cache_object.set(self.name, val, self.expiry, self.rawmode)
       return self.get
@@ -407,10 +426,10 @@ module InstantCache
     EOT
 
     Reader =<<-'EOT'
-#      def %s
-#        self.__send__(:_initialise_%s)
-#        return @%s.get
-#      end
+      def %s
+        self.__send__(:_initialise_%s)
+        return @%s.get
+      end
     EOT
 
     Writer =<<-'EOT'
