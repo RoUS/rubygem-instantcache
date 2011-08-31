@@ -25,6 +25,8 @@
 #    => #<Foo:0xb7438c64 @bar=#<InstantCache::Blob:0xc74f882>>
 #    f.bar = %w( one two three )
 #    => ["one","two","three"]
+#    f.bar << :four
+#    => ["one","two","three",:four]
 #    f.bar[1,1]
 #    => "two"
 #    f.bar_destroy!
@@ -34,10 +36,12 @@
 #
 # == Description
 #
-# Shash is like a Hash, except that you can access different levels
-# using method syntax.
-#-
-#   Copyright 2011 © Ken Coar
+# InstantCache provides accessor declarations, and the necessary
+# underpinnings, to allow you to share instance variables across a
+# memcached cluster.
+#
+#--
+#   Copyright © 2011 Ken Coar
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -50,7 +54,8 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-#+
+#++
+
 require 'delegate'
 require 'thread'
 require 'memcache'
@@ -66,60 +71,72 @@ Debugger.start
 #
 module InstantCache
 
-  Version = Versionomy.parse('0.1.0')
+  Version = Versionomy.parse('0.1.0a1')
   VERSION = Version.to_s.freeze
 
+  #
+  # Label informing accessor declarations that the variable is to be
+  # shared.  This changes how some things are done (like default
+  # memcached cell names).
+  #
   SHARED	= :SHARED
+  #
+  # Marks a variable as deliberately private and unshared.  It can
+  # still be accessed through memcached calls if you know how, but it
+  # isn't made easy -- it's supposed to be private, after all.
+  #
   PRIVATE	= :PRIVATE
 
   class << self
 
+    #
+    # The memcached instance is currently a class-wide value.
+    #
     attr_accessor(:cache_object)
 
-  end
-
-  module Sender
-
-    class << self
-
-      def included(klass)
-        #
-        # Shamelessly cadged from delegator.rb
-        #
-        eigenklass = eval('class << klass ; self ; end')
-        preserved = ::Kernel.public_instance_methods(false)
-        preserved -= [ 'to_s', 'to_a', 'inspect', '==', '=~', '===' ]
-        swbd = {}
-        klass.instance_variable_set(:@_instantcache_method_map, swbd)
-        for t in self.class.ancestors
-          preserved |= t.public_instance_methods(false)
-          preserved |= t.private_instance_methods(false)
-          preserved |= t.protected_instance_methods(false)
-        end
-        preserved << 'singleton_method_added'
-        klass.methods.each do |method|
-          next if (preserved.include?(method))
-          swbd[method] = klass.method(method.to_sym)
-          klass.instance_eval(<<-EOS)
-            def #{method}(*args, &block)
-              iniself = self.clone
-              result = @_instantcache_method_map['#{method}'].call(*args, &block)
-              if (self != iniself)
-                #
-                # Store the changed entity
-                #
-                owner = self.instance_variable_get(:@_instantcache_owner)
-                owner.set(self)
-              end
-              return result
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
+    #
+    def enwrap(target)
+      #
+      # Shamelessly cadged from delegator.rb
+      #
+      eigenklass = eval('class << target ; self ; end')
+      preserved = ::Kernel.public_instance_methods(false)
+      preserved -= [ 'to_s', 'to_a', 'inspect', '==', '=~', '===' ]
+      swbd = {}
+      target.instance_variable_set(:@_instantcache_method_map, swbd)
+      for t in self.class.ancestors
+        preserved |= t.public_instance_methods(false)
+        preserved |= t.private_instance_methods(false)
+        preserved |= t.protected_instance_methods(false)
+      end
+      preserved << 'singleton_method_added'
+      target.methods.each do |method|
+        next if (preserved.include?(method))
+        swbd[method] = target.method(method.to_sym)
+        target.instance_eval(<<-EOS)
+          def #{method}(*args, &block)
+            iniself = self.clone
+            result = @_instantcache_method_map['#{method}'].call(*args, &block)
+            if (self != iniself)
+              #
+              # Store the changed entity
+              #
+              owner = self.instance_variable_get(:@_instantcache_owner)
+              owner.set(self)
             end
-          EOS
-        end
-      end                       # End of def included
+            return result
+          end
+        EOS
+      end
+    end                         # End of def enwrap
 
-    end                         # End of module InstantCache::Sender eigenclass
-
-  end                           # End of module InstantCache::Sender
+  end                           # End of module InstantCache eigenclass
 
   #
   # Class for J Random Arbitrary Data stored in memcache.
@@ -136,6 +153,13 @@ module InstantCache
     #
     # Constructor of a non-raw object.
     #
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
+    #
     def initialize(inival=nil)
       @rawmode ||= false
       @expiry = 0
@@ -151,6 +175,13 @@ module InstantCache
       self.set(inival) unless(inival.nil?)
     end
 
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
+    #
     def reset
       raise Destroyed.new(self.name) if (self.destroyed?)
       rval = nil
@@ -167,14 +198,35 @@ module InstantCache
     #
     # Used to determine the name of the memcache cell.
     #
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
+    #
     def name
       raise RuntimeError.new('#name method must be defined in instance')
     end
 
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
+    #
     def destroyed?
       return false
     end
 
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
+    #
     def destroy!
       raise Destroyed.new(self.name) if (self.destroyed?)
       self.unlock
@@ -184,6 +236,13 @@ module InstantCache
 
     #
     # Not-for-public-consumption methods.
+    #
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
     #
     def lock_name
       return self.name + '-lock'
@@ -199,6 +258,13 @@ module InstantCache
     # if the cell already exists; we use that to try to create the
     # interlock cell.
     #
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
+    #
     def lock
       raise Destroyed.new(self.name) if (self.destroyed?)
       return true if (@locked_by_us)
@@ -210,6 +276,13 @@ module InstantCache
     #
     # If we have the cell locked, unlock it by deleting the
     # interlock cell (allowing someone else's #lock(#add) to work).
+    #
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
     #
     def unlock
       raise Destroyed.new(self.name) if (self.destroyed?)
@@ -239,14 +312,20 @@ module InstantCache
     #
     # Fetch the value out of memcached.
     #
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
+    #
     def get
       raise Destroyed.new(self.name) if (self.destroyed?)
       value = InstantCache.cache_object.get(self.name, self.rawmode)
       begin
         value.clone
         value.instance_variable_set(:@_instantcache_owner, self)
-        value.extend(InstantCache::Sender)
-        InstantCache::Sender.included(value)
+        InstantCache.enwrap(value)
       rescue
         #
         # If the value was something we couldn't clone, like a Fixnum,
@@ -259,6 +338,13 @@ module InstantCache
 
     #
     # Write a value into memcached.
+    #
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
     #
     def set(val_p)
       raise Destroyed.new(self.name) if (self.destroyed?)
@@ -288,11 +374,25 @@ module InstantCache
     # Just return the string representaton of the value, not
     # this instance.
     #
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
+    #
     def to_s(*args)
       raise Destroyed.new(self.name) if (self.destroyed?)
       return self.get.__send__(:to_s, *args)
     end
 
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
+    #
     def method_missing(meth, *args)
       methsym = meth.to_sym
       return self.__send__(methsym, *args) if (self.respond_to?(methsym))
@@ -316,6 +416,13 @@ module InstantCache
 
     RESET_VALUE = 0
 
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
+    #
     def initialize(inival=nil)
       @rawmode = true
       super
@@ -325,12 +432,26 @@ module InstantCache
     # Get the value through the superclass, and convert to integer.
     # (Raw values get stored as strings, since they're unmarshalled.)
     #
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
+    #
     def get
       return super.to_i
     end
 
     #
     # Store a value as an integer, and return it.
+    #
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
     #
     def set(val)
       unless (val.kind_of?(Integer))
@@ -343,6 +464,13 @@ module InstantCache
     # Increment a memcached raw cell.  This *only* works in raw mode,
     # but it's atomic.
     #
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
+    #
     def increment(amt=1)
       raise Destroyed.new(self.name) if (self.destroyed?)
       return InstantCache.cache_object.incr(self.name, amt)
@@ -351,6 +479,13 @@ module InstantCache
 
     #
     # As for #increment.
+    #
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
     #
     def decrement(amt=1)
       raise Destroyed.new(self.name) if (self.destroyed?)
@@ -531,6 +666,13 @@ module InstantCache
       nil
     }                           # End of Proc EigenCounter
 
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
+    #
     def included(base_klass)
       base_eigenklass = base_klass.class_eval('class << self ; self ; end')
       base_eigenklass.__send__(:define_method,
@@ -551,6 +693,13 @@ module InstantCache
   # This should be overridden by inheritors; it's used to form the name
   # of the memcached cell.
   #
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
+    #
   def name
     return "Unnamed-#{self.class.name}-object"
   end                           # End of def name

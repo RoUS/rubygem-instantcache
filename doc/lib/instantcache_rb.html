@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+
+  <title>File: instantcache.rb [instantcache-0.1.0a1 Documentation]</title>
+
+  <link type="text/css" media="screen" href="../rdoc.css" rel="stylesheet" />
+
+  <script src="../js/jquery.js" type="text/javascript"
+    charset="utf-8"></script>
+  <script src="../js/thickbox-compressed.js" type="text/javascript"
+    charset="utf-8"></script>
+  <script src="../js/quicksearch.js" type="text/javascript"
+    charset="utf-8"></script>
+  <script src="../js/darkfish.js" type="text/javascript"
+    charset="utf-8"></script>
+</head>
+
+<body class="file file-popup">
+  <div id="metadata">
+    <dl>
+      <dt class="modified-date">Last Modified</dt>
+      <dd class="modified-date">Wed Aug 31 10:57:15 -0400 2011</dd>
+
+      
+      <dt class="requires">Requires</dt>
+      <dd class="requires">
+        <ul>
+        
+          <li>delegate</li>
+        
+          <li>thread</li>
+        
+          <li>memcache</li>
+        
+          <li>versionomy</li>
+        
+          <li>lib/instantcache/exceptions</li>
+        
+          <li>ruby-debug</li>
+        
+        </ul>
+      </dd>
+      
+
+      
+    </dl>
+  </div>
+
+  <div id="documentation">
+    
+    <div class="description">
+      <h2>Description</h2>
+      
+<h1>instantcache.rb - <a href="../InstantCache.html">InstantCache</a> module</h1>
+<table class="rdoc-list"><tr><td class="rdoc-term"><p>Author</p></td>
+<td>
+<p>Ken Coar</p>
+</td></tr><tr><td class="rdoc-term"><p>Copyright</p></td>
+<td>
+<p>Copyright © 2011 Ken Coar</p>
+</td></tr><tr><td class="rdoc-term"><p>License</p></td>
+<td>
+<p>Apache Licence 2.0</p>
+</td></tr></table>
+
+<h2>Synopsis</h2>
+
+<pre>require 'rubygems'
+require 'memcache'
+require 'instantcache'
+InstantCache.cache_object = MemCache.new('127.0.0.1:11211')
+
+class Foo
+  include InstantCache
+  memcached_accessor(:bar)
+end
+
+f = Foo.new
+f.bar
+=&gt; nil
+f.bar = f
+=&gt; #&lt;Foo:0xb7438c64 @bar=#&lt;InstantCache::Blob:0xc74f882&gt;&gt;
+f.bar = %w( one two three )
+=&gt; [&quot;one&quot;,&quot;two&quot;,&quot;three&quot;]
+f.bar &lt;&lt; :four
+=&gt; [&quot;one&quot;,&quot;two&quot;,&quot;three&quot;,:four]
+f.bar[1,1]
+=&gt; &quot;two&quot;
+f.bar_destroy!
+=&gt; nil
+f.bar
+InstantCache::Destroyed: attempt to access destroyed variable</pre>
+
+<h2>Description</h2>
+
+<p><a href="../InstantCache.html">InstantCache</a> provides accessor
+declarations, and the necessary underpinnings, to allow you to share
+instance variables across a memcached cluster.</p>
+
+    </div>
+    
+  </div>
+</body>
+</html>
+
