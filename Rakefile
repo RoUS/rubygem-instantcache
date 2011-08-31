@@ -1,16 +1,20 @@
 require 'rubygems'
-gem 'hoe', '>= 2.1.0'
+gem('hoe', '>= 2.1.0')
 require 'hoe'
 require 'fileutils'
-require './lib/instantcache'
+Proc.new {
+  libdir = File.expand_path(File.join(File.dirname(__FILE__), 'lib'))
+  $:.unshift(libdir) unless ($:.include?(libdir))
+}.call
+require 'instantcache'
 
-Hoe.plugin :newgem
-# Hoe.plugin :website
+Hoe.plugin(:newgem)
+Hoe.plugin(:website)
 # Hoe.plugin :cucumberfeatures
 
 # Generate all the Rake tasks
 # Run 'rake -T' to see list of generated tasks (from gem root directory)
-$hoe = Hoe.spec 'instantcache' do
+$hoe = Hoe.spec('instantcache') {
   self.developer('Ken Coar',
                  'coar@rubyforge.org')
   #
@@ -26,7 +30,7 @@ $hoe = Hoe.spec 'instantcache' do
                                    ['versionomy','>= 0.4.0']
                                   ]
 
-end
+}
 
 require 'newgem/tasks'
 Dir['tasks/**/*.rake'].each { |t| load t }

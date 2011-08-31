@@ -187,4 +187,27 @@ module InstantCache
                     ]
   end
 
+  #
+  # Because of the annotation of returned values with callback singleton
+  # methods, it's possible for multiple user variables to hold references
+  # to a cell.  <i>E.g.</i>, one might remember the cell as a hash and
+  # modify an element, even though the cell has actually be explicitly
+  # set to something else.  Thie exception is raise if there's a mismatch
+  # when an annotation tries to update the cell.
+  #
+  class IncompatibleType < InstantCache::Exception
+    #
+    # ==== <tt>raise IncompatibleType</tt>
+    #   => InstantCache::IncompatibleType: variable class incompatible with cached value
+    #
+    # ==== <tt>raise IncompatibleType.new('<i>Hash</i>', '<i>Array</i>', '<i>name</i>')</tt>
+    #   => InstantCache::IncompatibleType: variable class "Hash" incompatible with class "Array" of cached variable "name"',
+    #   
+    MessageFormat = [
+                     'variable class incompatible with cached value',
+                     'variable class "%s" incompatible with class "%s" ' +
+                     'of cached variable "%s"',
+                    ]
+  end
+
 end                             # End of module InstantCache

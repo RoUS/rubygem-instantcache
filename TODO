@@ -22,3 +22,25 @@ o Making the wrapper transparent is turning out to be a bugger.  Using
     and store them in a hash.  Override the methods with code that
     invokes the saved method and does the check for changed content?
     That way it still retains its inheritance..
+o Annotating the return value with singleton methods that update the
+  cache works, but unexpectedly has some issues:
+
+  f = Foo.new
+  f.shared_cell = {}
+  p1 = f.shared_cell
+  f.shared_cell['k1'] = 'v1'
+  p1
+  => {'k1'=>'v1'}			# As expected and designed
+  p1['k2'] = 'v2'
+  f.shared_cell
+  => {'k1'=>'v1','k2'=>'v2'}		# As expected and designed
+  f.shared_cell = 5
+  p1
+  => {'k1'=>'v1','k2'=>'v2'}		# NOT as expected
+  p1['k3']='v3'
+  f.shared_cell
+  => {'k1'=>'v1','k2'=>'v2','k3'=>'v3'}	# NOT as expected
+
+  How to deal with this?  Add some sort of counter such that direct
+  frobs of the ivar invalidate (delete singleton methods) any
+  outstanding references?

@@ -60,7 +60,7 @@ require 'delegate'
 require 'thread'
 require 'memcache'
 require 'versionomy'
-require 'lib/instantcache/exceptions'
+require 'instantcache/exceptions'
 
 require 'ruby-debug'
 Debugger.start
@@ -110,6 +110,7 @@ module InstantCache
       preserved -= [ 'to_s', 'to_a', 'inspect', '==', '=~', '===' ]
       swbd = {}
       target.instance_variable_set(:@_instantcache_method_map, swbd)
+      target.instance_variable_set(:@_instantcache_datatype, target.class)
       for t in self.class.ancestors
         preserved |= t.public_instance_methods(false)
         preserved |= t.private_instance_methods(false)
@@ -127,6 +128,22 @@ module InstantCache
               #
               # Store the changed entity
               #
+              newklass = self.class
+              iniklass = iniself.instance_variable_get(:@_instantcache_datatype)
+              unless (self.kind_of?(iniklass))
+                begin
+                  raise InstantCache::IncompatibleType.new(newklass.name,
+                                                           iniklass.name,
+                                                           'TBS')
+                rescue InstantCache::IncompatibleType
+                  if ($@)
+                    $@.delete_if { |s|
+                      %r"\A#{Regexp.quote(__FILE__)}:\d+:in `" =~ s
+                    }
+                  end
+                  raise
+                end
+              end
               owner = self.instance_variable_get(:@_instantcache_owner)
               owner.set(self)
             end
