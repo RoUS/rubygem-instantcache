@@ -153,7 +153,27 @@ module InstantCache
       end
     end                         # End of def enwrap
 
-  end                           # End of module InstantCache eigenclass
+    #
+    # === Description
+    # :call-seq:
+    # === Arguments
+    # === Exceptions
+    # [<tt>InstantCache::Destroyed</tt>]
+    #
+    def unwrap(target)
+      remap = target.instance_variable_get(:@_instantcache_method_map)
+      return nil unless (remap.kind_of?(Hash))
+      remap.keys.each do |method|
+        begin
+          eval("class << target ; remove_method(:#{method}) ; end")
+        rescue
+        end
+      end
+      target.instance_variable_set(:@_instantcache_method_map, nil)
+      target.instance_variable_set(:@_instantcache_owner, nil)
+    end                        # End of def unwrap
+
+  end                          # End of module InstantCache eigenclass
 
   #
   # Class for J Random Arbitrary Data stored in memcache.
@@ -370,17 +390,7 @@ module InstantCache
       rescue TypeError => e
         val = val_p
       end
-      remap = val.instance_variable_get(:@_instantcache_method_map)
-      if (remap.kind_of?(Hash))
-        remap.keys.each do |method|
-          begin
-            eval("class << val ; remove_method(:#{method}) ; end")
-          rescue
-          end
-        end
-        val.instance_variable_set(:@_instantcache_method_map, nil)
-        val.instance_variable_set(:@_instantcache_owner, nil)
-      end
+      InstantCache.unwrap(val)
       InstantCache.cache_object.add(self.name, val, self.expiry, self.rawmode)
       InstantCache.cache_object.set(self.name, val, self.expiry, self.rawmode)
       return self.get
