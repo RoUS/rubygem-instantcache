@@ -383,7 +383,7 @@ module InstantCache
       # Thus subclasses can get most of the setup work done with a
       # simple invocation of #super.
       #
-      @rawmode = false if (@rawmode.nil?)
+      @rawmode ||= false
       @expiry = 0
       @locked_by_us = false
       #
@@ -1084,16 +1084,12 @@ module InstantCache
 
     #
     # String to define a read accessor for the given cache variable.
-    # Since all variables have this accessor, here's where we sneak in
-    # some class-evaluation-time code to actually fetch the value --
-    # thus instantiating everything we need.
     #
     Reader =<<-'EOT'            # :nodoc:
       def %s
         self.__send__(:_initialise_%s)
         return @%s.get
       end
-      @%s.get
     EOT
 
     #
@@ -1145,7 +1141,7 @@ module InstantCache
                     [ 'Blob', ivar_s, shared.inspect, name] +
                     ([ ivar_s ] * 20))
         class_eval(Setup % subslist)
-        class_eval(Reader % subslist[0, 3])
+        class_eval(Reader % subslist[7, 3])
       end
       nil
     }                           # End of Proc EigenReader
@@ -1172,8 +1168,8 @@ module InstantCache
                     [ 'Blob', ivar_s, shared.inspect, name] +
                     ([ ivar_s ] * 20))
         class_eval(Setup % subslist)
-        class_eval(Reader % subslist[0, 3])
-        class_eval(Writer % subslist[0, 3])
+        class_eval(Reader % subslist[7, 3])
+        class_eval(Writer % subslist[7, 3])
       end
       nil
     }                           # End of Proc EigenAccessor
@@ -1203,8 +1199,8 @@ module InstantCache
         subslist.delete_at(6)
         subslist.delete_at(5)
         subslist.delete_at(3)
-        class_eval(Reader % subslist[0, 3])
-        class_eval(Writer % subslist[0, 3])
+        class_eval(Reader % subslist[7, 3])
+        class_eval(Writer % subslist[7, 3])
         class_eval(Counter % subslist[0, 10])
       end
       nil

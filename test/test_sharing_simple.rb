@@ -48,9 +48,18 @@ class TestInstantCacheSimpleSharing < Test::Unit::TestCase
       self.class.class_eval('remove_const(:TestClass)')
     end
     self.class.class_eval(TestClass_def)
+    @test_objects = []
   end
 
   def teardown
+    @test_objects.each do |o|
+      VARS.each do |ivar_s|
+        cell = o.instance_variable_get("@#{ivar_s}".to_sym)
+        cellname = cell.name
+        InstantCache.cache_object.delete(cellname)
+        cell.destroy! unless (cell.destroyed?)
+      end
+    end
     unless (self.class.const_defined?(:TestClass))
       self.class.class_eval(TestClass_def)
     end
@@ -60,7 +69,7 @@ class TestInstantCacheSimpleSharing < Test::Unit::TestCase
   end
 
   def get_object
-    test_obj =TestClass.new
+    @test_objects << (test_obj = TestClass.new)
     VARS.each do |ivar_s|
       ivar_sym = ivar_s.to_sym
       if (ivar_s =~ %r!cc$!)
