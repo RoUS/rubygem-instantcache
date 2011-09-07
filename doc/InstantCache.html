@@ -68,6 +68,8 @@
           
           <li><span class="type">CLASS</span> <a href="InstantCache/Exception.html">InstantCache::Exception</a></li>
           
+          <li><span class="type">CLASS</span> <a href="InstantCache/IncompatibleType.html">InstantCache::IncompatibleType</a></li>
+          
           <li><span class="type">CLASS</span> <a href="InstantCache/IncompleteException.html">InstantCache::IncompleteException</a></li>
           
           <li><span class="type">CLASS</span> <a href="InstantCache/LockInconsistency.html">InstantCache::LockInconsistency</a></li>
@@ -87,6 +89,8 @@
           <li><a href="#method-c-enwrap">::enwrap</a></li>
           
           <li><a href="#method-c-included">::included</a></li>
+          
+          <li><a href="#method-c-unwrap">::unwrap</a></li>
           
           <li><a href="#method-i-name">#name</a></li>
           
@@ -140,6 +144,8 @@
           <li><a href="./InstantCache/Destroyed.html">InstantCache::Destroyed</a></li>
         
           <li><a href="./InstantCache/Exception.html">InstantCache::Exception</a></li>
+        
+          <li><a href="./InstantCache/IncompatibleType.html">InstantCache::IncompatibleType</a></li>
         
           <li><a href="./InstantCache/IncompleteException.html">InstantCache::IncompleteException</a></li>
         
@@ -307,19 +313,9 @@ This changes how some things are done (like default memcached cell names).</p></
           
           
           <div class="method-heading">
-            <span class="method-callseq">=== Arguments</span>
+            <span class="method-callseq">enwrap(<i>cacheval</i>) => nil</span>
             
             <span class="method-click-advice">click to toggle source</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">=== Exceptions</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">[<tt>InstantCache::Destroyed</tt>]</span>
             
           </div>
           
@@ -328,14 +324,27 @@ This changes how some things are done (like default memcached cell names).</p></
           <div class="method-description">
             
             <h3>Description</h3>
+
+<h3>Arguments</h3>
+<dl class="rdoc-list"><dt><em>cacheval</em></dt>
+<dd>
+<p>Variable containing value fetched from memcache.</p>
+</dd></dl>
+
+<h3>Exceptions</h3>
+<dl class="rdoc-list"><dt><tt><a href="InstantCache/Destroyed.html">InstantCache::Destroyed</a></tt></dt>
+<dd>
+<p>Cache value instance has been destroyed and is no longer usable. The value
+in the cache is unaffected.</p>
+</dd></dl>
             
 
             
             <div class="method-source-code" id="enwrap-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 103</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 108</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">enwrap</span>(<span class="ruby-identifier">target</span>)
-  <span class="ruby-comment">#</span>
+  <span class="ruby-comment">#--</span>
   <span class="ruby-comment"># Shamelessly cadged from delegator.rb</span>
   <span class="ruby-comment">#</span>
   <span class="ruby-identifier">eigenklass</span> = <span class="ruby-identifier">eval</span>(<span class="ruby-string">'class &lt;&lt; target ; self ; end'</span>)
@@ -343,6 +352,7 @@ This changes how some things are done (like default memcached cell names).</p></
   <span class="ruby-identifier">preserved</span> <span class="ruby-operator">-=</span> [ <span class="ruby-string">'to_s'</span>, <span class="ruby-string">'to_a'</span>, <span class="ruby-string">'inspect'</span>, <span class="ruby-string">'=='</span>, <span class="ruby-string">'=~'</span>, <span class="ruby-string">'==='</span> ]
   <span class="ruby-identifier">swbd</span> = {}
   <span class="ruby-identifier">target</span>.<span class="ruby-identifier">instance_variable_set</span>(<span class="ruby-value">:@_instantcache_method_map</span>, <span class="ruby-identifier">swbd</span>)
+  <span class="ruby-identifier">target</span>.<span class="ruby-identifier">instance_variable_set</span>(<span class="ruby-value">:@_instantcache_datatype</span>, <span class="ruby-identifier">target</span>.<span class="ruby-identifier">class</span>)
   <span class="ruby-keyword">for</span> <span class="ruby-identifier">t</span> <span class="ruby-keyword">in</span> <span class="ruby-keyword">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">ancestors</span>
     <span class="ruby-identifier">preserved</span> <span class="ruby-operator">|=</span> <span class="ruby-identifier">t</span>.<span class="ruby-identifier">public_instance_methods</span>(<span class="ruby-keyword">false</span>)
     <span class="ruby-identifier">preserved</span> <span class="ruby-operator">|=</span> <span class="ruby-identifier">t</span>.<span class="ruby-identifier">private_instance_methods</span>(<span class="ruby-keyword">false</span>)
@@ -352,8 +362,9 @@ This changes how some things are done (like default memcached cell names).</p></
   <span class="ruby-identifier">target</span>.<span class="ruby-identifier">methods</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">method</span><span class="ruby-operator">|</span>
     <span class="ruby-keyword">next</span> <span class="ruby-keyword">if</span> (<span class="ruby-identifier">preserved</span>.<span class="ruby-identifier">include?</span>(<span class="ruby-identifier">method</span>))
     <span class="ruby-identifier">swbd</span>[<span class="ruby-identifier">method</span>] = <span class="ruby-identifier">target</span>.<span class="ruby-identifier">method</span>(<span class="ruby-identifier">method</span>.<span class="ruby-identifier">to_sym</span>)
-    <span class="ruby-identifier">target</span>.<span class="ruby-identifier">instance_eval</span>(<span class="ruby-string">          def #{method}(*args, &amp;block)            iniself = self.clone            result = @_instantcache_method_map['#{method}'].call(*args, &amp;block)            if (self != iniself)              #              # Store the changed entity              #              owner = self.instance_variable_get(:@_instantcache_owner)              owner.set(self)            end            return result          end</span>)
+    <span class="ruby-identifier">target</span>.<span class="ruby-identifier">instance_eval</span>(<span class="ruby-string">          def #{method}(*args, &amp;block)            iniself = self.clone            result = @_instantcache_method_map['#{method}'].call(*args, &amp;block)            if (self != iniself)              #              # Store the changed entity              #              newklass = self.class              iniklass = iniself.instance_variable_get(:@_instantcache_datatype)              unless (self.kind_of?(iniklass))                begin                  raise InstantCache::IncompatibleType.new(newklass.name,                                                           iniklass.name,                                                           'TBS')                rescue InstantCache::IncompatibleType                  if ($@)                    $@.delete_if { |s|                      %r&quot;\A#{Regexp.quote(__FILE__)}:\d+:in `&quot; =~ s                    }                  end                  raise                end              end              owner = self.instance_variable_get(:@_instantcache_owner)              owner.set(self)            end            return result          end</span>)
   <span class="ruby-keyword">end</span>
+  <span class="ruby-keyword">return</span> <span class="ruby-keyword">nil</span>
 <span class="ruby-keyword">end</span></pre>
             </div><!-- enwrap-source -->
             
@@ -397,7 +408,7 @@ This changes how some things are done (like default memcached cell names).</p></
             
             <div class="method-source-code" id="included-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 675</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 739</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">included</span>(<span class="ruby-identifier">base_klass</span>)
   <span class="ruby-identifier">base_eigenklass</span> = <span class="ruby-identifier">base_klass</span>.<span class="ruby-identifier">class_eval</span>(<span class="ruby-string">'class &lt;&lt; self ; self ; end'</span>)
   <span class="ruby-identifier">base_eigenklass</span>.<span class="ruby-identifier">__send__</span>(<span class="ruby-value">:define_method</span>,
@@ -419,6 +430,66 @@ This changes how some things are done (like default memcached cell names).</p></
 
           
         </div><!-- included-method -->
+
+      
+        <div id="unwrap-method" class="method-detail ">
+          <a name="method-c-unwrap"></a>
+
+          
+          
+          <div class="method-heading">
+            <span class="method-callseq">unwrap(<i>target</i>) => nil</span>
+            
+            <span class="method-click-advice">click to toggle source</span>
+            
+          </div>
+          
+          
+
+          <div class="method-description">
+            
+            <h3>Description</h3>
+
+<p>Removes any singleton methods added by the #enwrap class method. If the
+argument doesn’t have any (<em>e.g.</em>, isn’t a value that was
+previously fetched), this is a no-op.</p>
+
+<h3>Arguments</h3>
+<dl class="rdoc-list"><dt><em>target</em></dt>
+<dd>
+<p>Variable containing value previously fetched from memcache.</p>
+</dd></dl>
+
+<h3>Exceptions</h3>
+<dl class="rdoc-list"><dt><em>None.</em></dt>
+<dd></dd></dl>
+            
+
+            
+            <div class="method-source-code" id="unwrap-source">
+<pre>
+<span class="ruby-comment"># File lib/instantcache.rb, line 178</span>
+<span class="ruby-keyword">def</span> <span class="ruby-identifier">unwrap</span>(<span class="ruby-identifier">target</span>)
+  <span class="ruby-identifier">remap</span> = <span class="ruby-identifier">target</span>.<span class="ruby-identifier">instance_variable_get</span>(<span class="ruby-value">:@_instantcache_method_map</span>)
+  <span class="ruby-keyword">return</span> <span class="ruby-keyword">nil</span> <span class="ruby-keyword">unless</span> (<span class="ruby-identifier">remap</span>.<span class="ruby-identifier">kind_of?</span>(<span class="ruby-constant">Hash</span>))
+  <span class="ruby-identifier">remap</span>.<span class="ruby-identifier">keys</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">method</span><span class="ruby-operator">|</span>
+    <span class="ruby-keyword">begin</span>
+      <span class="ruby-identifier">eval</span>(<span class="ruby-node">&quot;class &lt;&lt; target ; remove_method(:#{method}) ; end&quot;</span>)
+    <span class="ruby-keyword">rescue</span>
+    <span class="ruby-keyword">end</span>
+  <span class="ruby-keyword">end</span>
+  <span class="ruby-identifier">target</span>.<span class="ruby-identifier">instance_variable_set</span>(<span class="ruby-value">:@_instantcache_method_map</span>, <span class="ruby-keyword">nil</span>)
+  <span class="ruby-identifier">target</span>.<span class="ruby-identifier">instance_variable_set</span>(<span class="ruby-value">:@_instantcache_owner</span>, <span class="ruby-keyword">nil</span>)
+  <span class="ruby-keyword">return</span> <span class="ruby-keyword">nil</span>
+<span class="ruby-keyword">end</span></pre>
+            </div><!-- unwrap-source -->
+            
+          </div>
+
+          
+
+          
+        </div><!-- unwrap-method -->
 
       
       </div><!-- public-class-method-details -->
@@ -462,7 +533,7 @@ the memcached cell.</p>
             
             <div class="method-source-code" id="name-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 702</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 766</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">name</span>
   <span class="ruby-keyword">return</span> <span class="ruby-node">&quot;Unnamed-#{self.class.name}-object&quot;</span>
 <span class="ruby-keyword">end</span></pre>

@@ -5,7 +5,7 @@
 <head>
   <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
 
-  <title>Class: InstantCache::LockInconsistency</title>
+  <title>Class: InstantCache::IncompatibleType</title>
 
   <link rel="stylesheet" href="../rdoc.css" type="text/css" media="screen" />
 
@@ -125,12 +125,16 @@
   </div>
 
   <div id="documentation">
-    <h1 class="class">InstantCache::LockInconsistency</h1>
+    <h1 class="class">InstantCache::IncompatibleType</h1>
 
     <div id="description" class="description">
       
-<p>Our record of the locked status of a cell differs from the information
-stored in the memcache about it.  This Is Not Good.</p>
+<p>Because of the annotation of returned values with callback singleton
+methods, it’s possible for multiple user variables to hold references to
+a cell.  <em>E.g.</em>, one might remember the cell as a hash and modify an
+element, even though the cell has actually be explicitly set to something
+else.  Thie exception is raise if there’s a mismatch when an annotation
+tries to update the cell.</p>
 
     </div><!-- description -->
 
@@ -148,14 +152,13 @@ stored in the memcache about it.  This Is Not Good.</p>
         
           <dt><a name="MessageFormat">MessageFormat</a></dt>
           
-          <dd class="description"><h4><tt>raise <a href="LockInconsistency.html">LockInconsistency</a></tt></h4>
+          <dd class="description"><h4><tt>raise <a href="IncompatibleType.html">IncompatibleType</a></tt></h4>
 
-<pre>=&gt; InstantCache::LockInconsistency: interlock cell inconsistency</pre>
+<pre>=&gt; InstantCache::IncompatibleType: variable class incompatible with cached value</pre>
 
-<h4><tt>raise <a href="Exception.html#method-c-new">LockInconsistency.new</a>('<em>name</em>', '<em>true</em>', '<em>false</em>')</tt></h4>
+<h4><tt>raise <a href="Exception.html#method-c-new">IncompatibleType.new</a>('<em>Hash</em>', '<em>Array</em>', '<em>name</em>')</tt></h4>
 
-<pre>=&gt; InstantCache::LockInconsistency: interlock cell inconsistency
-          cell='name', expected='true', actual='false'</pre></dd>
+<pre>=&gt; InstantCache::IncompatibleType: variable class &quot;Hash&quot; incompatible with class &quot;Array&quot; of cached variable &quot;name&quot;',</pre></dd>
           
         
         </dl>

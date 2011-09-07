@@ -144,6 +144,8 @@
         
           <li><a href="../InstantCache/Exception.html">InstantCache::Exception</a></li>
         
+          <li><a href="../InstantCache/IncompatibleType.html">InstantCache::IncompatibleType</a></li>
+        
           <li><a href="../InstantCache/IncompleteException.html">InstantCache::IncompleteException</a></li>
         
           <li><a href="../InstantCache/LockInconsistency.html">InstantCache::LockInconsistency</a></li>
@@ -181,7 +183,8 @@
         
           <dt><a name="RESET_VALUE">RESET_VALUE</a></dt>
           
-          <dd class="description"></dd>
+          <dd class="description"><p>When a cached value of this type is reset or cleared, exactly what value is
+used to do so?</p></dd>
           
         
         </dl>
@@ -271,19 +274,14 @@
           
           
           <div class="method-heading">
-            <span class="method-callseq">=== Arguments</span>
+            <span class="method-callseq">memcached_accessor(<i>symbol</i>[,...])</span>
             
             <span class="method-click-advice">click to toggle source</span>
             
           </div>
           
           <div class="method-heading">
-            <span class="method-callseq">=== Exceptions</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">[<tt>InstantCache::Destroyed</tt>]</span>
+            <span class="method-callseq">memcached_reader(<i>symbol</i>[,...])</span>
             
           </div>
           
@@ -294,12 +292,24 @@
             <p>Constructor of a non-raw object.</p>
 
 <h3>Description</h3>
+
+<h3>Arguments</h3>
+<dl class="rdoc-list"><dt><em>symbol</em></dt>
+<dd>
+<p>As with other Ruby accessor declarations, the argument list consists of one
+or more variable names represented as symbols (<em>e.g.</em>,
+<tt>:variablename</tt>).</p>
+</dd></dl>
+
+<h3>Exceptions</h3>
+<dl class="rdoc-list"><dt><em>None.</em></dt>
+<dd></dd></dl>
             
 
             
             <div class="method-source-code" id="new-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 162</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 227</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">inival</span>=<span class="ruby-keyword">nil</span>)
   <span class="ruby-ivar">@rawmode</span> <span class="ruby-operator">||=</span> <span class="ruby-keyword">false</span>
   <span class="ruby-ivar">@expiry</span> = <span class="ruby-value">0</span>
@@ -362,7 +372,7 @@
             
             <div class="method-source-code" id="destroy-21-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 229</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 303</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">destroy!</span>
   <span class="ruby-identifier">raise</span> <span class="ruby-constant">Destroyed</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>) <span class="ruby-keyword">if</span> (<span class="ruby-keyword">self</span>.<span class="ruby-identifier">destroyed?</span>)
   <span class="ruby-keyword">self</span>.<span class="ruby-identifier">unlock</span>
@@ -411,7 +421,7 @@
             
             <div class="method-source-code" id="destroyed-3F-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 218</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 292</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">destroyed?</span>
   <span class="ruby-keyword">return</span> <span class="ruby-keyword">false</span>
 <span class="ruby-keyword">end</span></pre>
@@ -459,7 +469,7 @@
             
             <div class="method-source-code" id="get-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 321</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 395</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">get</span>
   <span class="ruby-identifier">raise</span> <span class="ruby-constant">Destroyed</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>) <span class="ruby-keyword">if</span> (<span class="ruby-keyword">self</span>.<span class="ruby-identifier">destroyed?</span>)
   <span class="ruby-identifier">value</span> = <span class="ruby-constant">InstantCache</span>.<span class="ruby-identifier">cache_object</span>.<span class="ruby-identifier">get</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>, <span class="ruby-keyword">self</span>.<span class="ruby-identifier">rawmode</span>)
@@ -528,7 +538,7 @@ already exists; we use that to try to create the interlock cell.</p>
             
             <div class="method-source-code" id="lock-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 267</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 341</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">lock</span>
   <span class="ruby-identifier">raise</span> <span class="ruby-constant">Destroyed</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>) <span class="ruby-keyword">if</span> (<span class="ruby-keyword">self</span>.<span class="ruby-identifier">destroyed?</span>)
   <span class="ruby-keyword">return</span> <span class="ruby-keyword">true</span> <span class="ruby-keyword">if</span> (<span class="ruby-ivar">@locked_by_us</span>)
@@ -578,7 +588,7 @@ already exists; we use that to try to create the interlock cell.</p>
             
             <div class="method-source-code" id="method_missing-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 395</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 459</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">method_missing</span>(<span class="ruby-identifier">meth</span>, *<span class="ruby-identifier">args</span>)
   <span class="ruby-identifier">methsym</span> = <span class="ruby-identifier">meth</span>.<span class="ruby-identifier">to_sym</span>
   <span class="ruby-keyword">return</span> <span class="ruby-keyword">self</span>.<span class="ruby-identifier">__send__</span>(<span class="ruby-identifier">methsym</span>, *<span class="ruby-identifier">args</span>) <span class="ruby-keyword">if</span> (<span class="ruby-keyword">self</span>.<span class="ruby-identifier">respond_to?</span>(<span class="ruby-identifier">methsym</span>))
@@ -634,7 +644,7 @@ already exists; we use that to try to create the interlock cell.</p>
             
             <div class="method-source-code" id="name-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 207</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 281</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">name</span>
   <span class="ruby-identifier">raise</span> <span class="ruby-constant">RuntimeError</span>.<span class="ruby-identifier">new</span>(<span class="ruby-string">'#name method must be defined in instance'</span>)
 <span class="ruby-keyword">end</span></pre>
@@ -683,19 +693,9 @@ already exists; we use that to try to create the interlock cell.</p>
           
           
           <div class="method-heading">
-            <span class="method-callseq">=== Arguments</span>
+            <span class="method-callseq">reset => <i>default reset value</i></span>
             
             <span class="method-click-advice">click to toggle source</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">=== Exceptions</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">[<tt>InstantCache::Destroyed</tt>]</span>
             
           </div>
           
@@ -704,12 +704,25 @@ already exists; we use that to try to create the interlock cell.</p>
           <div class="method-description">
             
             <h3>Description</h3>
+
+<p>Reset the cache value to its default (typically zero or nil).</p>
+
+<h3>Arguments</h3>
+<dl class="rdoc-list"><dt><em>None.</em></dt>
+<dd>
+<h3>Exceptions</h3>
+<dl class="rdoc-list"><dt><tt><a href="Destroyed.html">InstantCache::Destroyed</a></tt></dt>
+<dd>
+<p>Cache value instance has been destroyed and is no longer usable. The value
+in the cache is unaffected.</p>
+</dd></dl>
+</dd></dl>
             
 
             
             <div class="method-source-code" id="reset-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 184</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 258</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">reset</span>
   <span class="ruby-identifier">raise</span> <span class="ruby-constant">Destroyed</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>) <span class="ruby-keyword">if</span> (<span class="ruby-keyword">self</span>.<span class="ruby-identifier">destroyed?</span>)
   <span class="ruby-identifier">rval</span> = <span class="ruby-keyword">nil</span>
@@ -766,7 +779,7 @@ already exists; we use that to try to create the interlock cell.</p>
             
             <div class="method-source-code" id="set-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 348</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 422</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">set</span>(<span class="ruby-identifier">val_p</span>)
   <span class="ruby-identifier">raise</span> <span class="ruby-constant">Destroyed</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>) <span class="ruby-keyword">if</span> (<span class="ruby-keyword">self</span>.<span class="ruby-identifier">destroyed?</span>)
   <span class="ruby-keyword">begin</span>
@@ -774,17 +787,7 @@ already exists; we use that to try to create the interlock cell.</p>
   <span class="ruby-keyword">rescue</span> <span class="ruby-constant">TypeError</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">e</span>
     <span class="ruby-identifier">val</span> = <span class="ruby-identifier">val_p</span>
   <span class="ruby-keyword">end</span>
-  <span class="ruby-identifier">remap</span> = <span class="ruby-identifier">val</span>.<span class="ruby-identifier">instance_variable_get</span>(<span class="ruby-value">:@_instantcache_method_map</span>)
-  <span class="ruby-keyword">if</span> (<span class="ruby-identifier">remap</span>.<span class="ruby-identifier">kind_of?</span>(<span class="ruby-constant">Hash</span>))
-    <span class="ruby-identifier">remap</span>.<span class="ruby-identifier">keys</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">method</span><span class="ruby-operator">|</span>
-      <span class="ruby-keyword">begin</span>
-        <span class="ruby-identifier">eval</span>(<span class="ruby-node">&quot;class &lt;&lt; val ; remove_method(:#{method}) ; end&quot;</span>)
-      <span class="ruby-keyword">rescue</span>
-      <span class="ruby-keyword">end</span>
-    <span class="ruby-keyword">end</span>
-    <span class="ruby-identifier">val</span>.<span class="ruby-identifier">instance_variable_set</span>(<span class="ruby-value">:@_instantcache_method_map</span>, <span class="ruby-keyword">nil</span>)
-    <span class="ruby-identifier">val</span>.<span class="ruby-identifier">instance_variable_set</span>(<span class="ruby-value">:@_instantcache_owner</span>, <span class="ruby-keyword">nil</span>)
-  <span class="ruby-keyword">end</span>
+  <span class="ruby-constant">InstantCache</span>.<span class="ruby-identifier">unwrap</span>(<span class="ruby-identifier">val</span>)
   <span class="ruby-constant">InstantCache</span>.<span class="ruby-identifier">cache_object</span>.<span class="ruby-identifier">add</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>, <span class="ruby-identifier">val</span>, <span class="ruby-keyword">self</span>.<span class="ruby-identifier">expiry</span>, <span class="ruby-keyword">self</span>.<span class="ruby-identifier">rawmode</span>)
   <span class="ruby-constant">InstantCache</span>.<span class="ruby-identifier">cache_object</span>.<span class="ruby-identifier">set</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>, <span class="ruby-identifier">val</span>, <span class="ruby-keyword">self</span>.<span class="ruby-identifier">expiry</span>, <span class="ruby-keyword">self</span>.<span class="ruby-identifier">rawmode</span>)
   <span class="ruby-keyword">return</span> <span class="ruby-keyword">self</span>.<span class="ruby-identifier">get</span>
@@ -837,7 +840,7 @@ already exists; we use that to try to create the interlock cell.</p>
             
             <div class="method-source-code" id="to_s-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 383</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 447</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">to_s</span>(*<span class="ruby-identifier">args</span>)
   <span class="ruby-identifier">raise</span> <span class="ruby-constant">Destroyed</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>) <span class="ruby-keyword">if</span> (<span class="ruby-keyword">self</span>.<span class="ruby-identifier">destroyed?</span>)
   <span class="ruby-keyword">return</span> <span class="ruby-keyword">self</span>.<span class="ruby-identifier">get</span>.<span class="ruby-identifier">__send__</span>(<span class="ruby-value">:to_s</span>, *<span class="ruby-identifier">args</span>)
@@ -888,7 +891,7 @@ to work).</p>
             
             <div class="method-source-code" id="unlock-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 286</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 360</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">unlock</span>
   <span class="ruby-identifier">raise</span> <span class="ruby-constant">Destroyed</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>) <span class="ruby-keyword">if</span> (<span class="ruby-keyword">self</span>.<span class="ruby-identifier">destroyed?</span>)
   <span class="ruby-identifier">sts</span> = <span class="ruby-constant">InstantCache</span>.<span class="ruby-identifier">cache_object</span>.<span class="ruby-identifier">get</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">lock_name</span>) <span class="ruby-operator">||</span> <span class="ruby-keyword">false</span>
@@ -992,7 +995,7 @@ to work).</p>
             
             <div class="method-source-code" id="lock_name-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 246</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 320</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">lock_name</span>
   <span class="ruby-keyword">return</span> <span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span> <span class="ruby-operator">+</span> <span class="ruby-string">'-lock'</span>
 <span class="ruby-keyword">end</span></pre>

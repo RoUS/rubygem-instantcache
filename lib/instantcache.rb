@@ -56,7 +56,6 @@
 #   limitations under the License.
 #++
 
-require 'delegate'
 require 'thread'
 require 'memcache'
 require 'versionomy'
@@ -97,12 +96,18 @@ module InstantCache
     #
     # === Description
     # :call-seq:
+    # InstantCache.enwrap(<i>cacheval</i>) => nil
+    #
     # === Arguments
+    # [<i>cacheval</i>] Variable containing value fetched from memcache.
+    #
     # === Exceptions
-    # [<tt>InstantCache::Destroyed</tt>]
+    # [<tt>InstantCache::Destroyed</tt>] Cache value instance has been
+    #                                    destroyed and is no longer usable.
+    #                                    The value in the cache is unaffected.
     #
     def enwrap(target)
-      #
+      #--
       # Shamelessly cadged from delegator.rb
       #
       eigenklass = eval('class << target ; self ; end')
@@ -151,14 +156,25 @@ module InstantCache
           end
         EOS
       end
+      return nil
     end                         # End of def enwrap
+    #++
 
     #
     # === Description
+    # Removes any singleton methods added by the #enwrap class method.
+    # If the argument doesn't have any (<i>e.g.</i>, isn't a value that
+    # was previously fetched), this is a no-op.
+    #
     # :call-seq:
+    # InstantCache.unwrap(<i>target</i>) => nil
+    #
     # === Arguments
+    # [<i>target</i>] Variable containing value previously fetched
+    #                 from memcache.
+    #
     # === Exceptions
-    # [<tt>InstantCache::Destroyed</tt>]
+    # [<i>None.</i>]
     #
     def unwrap(target)
       remap = target.instance_variable_get(:@_instantcache_method_map)
@@ -171,6 +187,7 @@ module InstantCache
       end
       target.instance_variable_set(:@_instantcache_method_map, nil)
       target.instance_variable_set(:@_instantcache_owner, nil)
+      return nil
     end                        # End of def unwrap
 
   end                          # End of module InstantCache eigenclass
@@ -180,6 +197,10 @@ module InstantCache
   #
   class Blob
 
+    #
+    # When a cached value of this type is reset or cleared,
+    # exactly what value is used to do so?
+    #
     RESET_VALUE = nil
 
     attr_accessor(:expiry)
@@ -193,9 +214,16 @@ module InstantCache
     #
     # === Description
     # :call-seq:
+    # memcached_accessor(<i>symbol</i>[,...])
+    # memcached_reader(<i>symbol</i>[,...])
+    #
     # === Arguments
+    # [<i>symbol</i>] As with other Ruby accessor declarations, the argument
+    #                 list consists of one or more variable names represented
+    #                 as symbols (<i>e.g.</i>, <tt>:variablename</tt>).
+    #
     # === Exceptions
-    # [<tt>InstantCache::Destroyed</tt>]
+    # [<i>None.</i>]
     #
     def initialize(inival=nil)
       @rawmode ||= false
@@ -214,10 +242,19 @@ module InstantCache
 
     #
     # === Description
+    # Reset the cache value to its default (typically zero or nil).
+    #
     # :call-seq:
+    # reset => <i>default reset value</i>
+    #
     # === Arguments
+    # [<i>None.</i>]
+    #
     # === Exceptions
-    # [<tt>InstantCache::Destroyed</tt>]
+    # [<tt>InstantCache::Destroyed</tt>] Cache value instance has been
+    #                                    destroyed and is no longer usable.
+    #                                    The value in the cache is unaffected.
+    #
     #
     def reset
       raise Destroyed.new(self.name) if (self.destroyed?)

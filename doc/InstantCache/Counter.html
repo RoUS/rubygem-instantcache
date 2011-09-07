@@ -130,6 +130,8 @@
         
           <li><a href="../InstantCache/Exception.html">InstantCache::Exception</a></li>
         
+          <li><a href="../InstantCache/IncompatibleType.html">InstantCache::IncompatibleType</a></li>
+        
           <li><a href="../InstantCache/IncompleteException.html">InstantCache::IncompleteException</a></li>
         
           <li><a href="../InstantCache/LockInconsistency.html">InstantCache::LockInconsistency</a></li>
@@ -216,7 +218,7 @@ except with rawmode forced to true.</p>
             
             <div class="method-source-code" id="new-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 425</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 489</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">inival</span>=<span class="ruby-keyword">nil</span>)
   <span class="ruby-ivar">@rawmode</span> = <span class="ruby-keyword">true</span>
   <span class="ruby-keyword">super</span>
@@ -300,7 +302,7 @@ except with rawmode forced to true.</p>
             
             <div class="method-source-code" id="decrement-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 489</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 553</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">decrement</span>(<span class="ruby-identifier">amt</span>=<span class="ruby-value">1</span>)
   <span class="ruby-identifier">raise</span> <span class="ruby-constant">Destroyed</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>) <span class="ruby-keyword">if</span> (<span class="ruby-keyword">self</span>.<span class="ruby-identifier">destroyed?</span>)
   <span class="ruby-keyword">return</span> <span class="ruby-constant">InstantCache</span>.<span class="ruby-identifier">cache_object</span>.<span class="ruby-identifier">decr</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>, <span class="ruby-identifier">amt</span>)
@@ -354,7 +356,7 @@ get stored as strings, since they’re unmarshalled.)</p>
             
             <div class="method-source-code" id="get-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 441</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 505</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">get</span>
   <span class="ruby-keyword">return</span> <span class="ruby-keyword">super</span>.<span class="ruby-identifier">to_i</span>
 <span class="ruby-keyword">end</span></pre>
@@ -432,7 +434,7 @@ it’s atomic.</p>
             
             <div class="method-source-code" id="increment-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 473</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 537</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">increment</span>(<span class="ruby-identifier">amt</span>=<span class="ruby-value">1</span>)
   <span class="ruby-identifier">raise</span> <span class="ruby-constant">Destroyed</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>) <span class="ruby-keyword">if</span> (<span class="ruby-keyword">self</span>.<span class="ruby-identifier">destroyed?</span>)
   <span class="ruby-keyword">return</span> <span class="ruby-constant">InstantCache</span>.<span class="ruby-identifier">cache_object</span>.<span class="ruby-identifier">incr</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>, <span class="ruby-identifier">amt</span>)
@@ -485,7 +487,7 @@ it’s atomic.</p>
             
             <div class="method-source-code" id="set-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 455</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 519</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">set</span>(<span class="ruby-identifier">val</span>)
   <span class="ruby-keyword">unless</span> (<span class="ruby-identifier">val</span>.<span class="ruby-identifier">kind_of?</span>(<span class="ruby-constant">Integer</span>))
     <span class="ruby-identifier">raise</span> <span class="ruby-constant">CounterIntegerOnly</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">ivar_name</span>.<span class="ruby-identifier">inspect</span>)
