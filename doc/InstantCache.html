@@ -88,8 +88,6 @@
           
           <li><a href="#method-c-enwrap">::enwrap</a></li>
           
-          <li><a href="#method-c-included">::included</a></li>
-          
           <li><a href="#method-c-unwrap">::unwrap</a></li>
           
           <li><a href="#method-i-name">#name</a></li>
@@ -170,35 +168,6 @@
 memcached.</p>
 <hr style="height: 1px">
 
-<h1>instantcache/exceptions.rb — <a href="InstantCache.html">InstantCache</a> exceptions</h1>
-<table class="rdoc-list"><tr><td class="rdoc-term"><p>Author</p></td>
-<td>
-<p>Ken Coar</p>
-</td></tr><tr><td class="rdoc-term"><p>Copyright</p></td>
-<td>
-<p>Copyright © 2011 Ken Coar</p>
-</td></tr><tr><td class="rdoc-term"><p>License</p></td>
-<td>
-<p>Apache Licence 2.0</p>
-</td></tr></table>
-
-<h2>Description</h2>
-
-<p><a href="InstantCache.html">InstantCache</a> reports problems using
-Ruby’s exception mechanism.  Its exceptions are a little different from
-the usual run-of-the-mill ones, however.  Each exception declaration (aside
-from the superclass) consists solely of a constant named
-<tt>MessageFormat</tt>, which is a two-element array of strings. The first
-element is the default text of the message, which is used when the
-exception is raised without arguments.  <em>E.g.</em>,</p>
-
-<pre>raise InstantCache::Destroyed</pre>
-
-<p>The second element of the <tt>MessageFormat</tt> array is utilised when a
-new instance of the exception is created, and the constructor’s arguments
-are used as <tt>sprintf</tt>-style arguments with the
-<tt>MessageFormat</tt> text.</p>
-
     </div><!-- description -->
 
     
@@ -213,36 +182,11 @@ are used as <tt>sprintf</tt>-style arguments with the
         <h3 class="section-header">Constants</h3>
         <dl>
         
-          <dt><a name="Counter">Counter</a></dt>
-          
-          <dd class="description"></dd>
-          
-        
-          <dt><a name="EigenAccessor">EigenAccessor</a></dt>
-          
-          <dd class="description"></dd>
-          
-        
-          <dt><a name="EigenCounter">EigenCounter</a></dt>
-          
-          <dd class="description"></dd>
-          
-        
-          <dt><a name="EigenReader">EigenReader</a></dt>
-          
-          <dd class="description"></dd>
-          
-        
           <dt><a name="PRIVATE">PRIVATE</a></dt>
           
           <dd class="description"><p>Marks a variable as deliberately private and unshared.  It can still be
 accessed through memcached calls if you know how, but it isn’t made easy
 – it’s supposed to be private, after all.</p></dd>
-          
-        
-          <dt><a name="Reader">Reader</a></dt>
-          
-          <dd class="description"></dd>
           
         
           <dt><a name="SHARED">SHARED</a></dt>
@@ -251,24 +195,14 @@ accessed through memcached calls if you know how, but it isn’t made easy
 This changes how some things are done (like default memcached cell names).</p></dd>
           
         
-          <dt><a name="Setup">Setup</a></dt>
-          
-          <dd class="description"></dd>
-          
-        
           <dt><a name="VERSION">VERSION</a></dt>
           
-          <dd class="description"></dd>
+          <dd class="description"><p>The package version-as-a-string.</p></dd>
           
         
           <dt><a name="Version">Version</a></dt>
           
-          <dd class="description"></dd>
-          
-        
-          <dt><a name="Writer">Writer</a></dt>
-          
-          <dd class="description"></dd>
+          <dd class="description"><p>The base Versionomy representation of the package version.</p></dd>
           
         
         </dl>
@@ -342,9 +276,9 @@ in the cache is unaffected.</p>
             
             <div class="method-source-code" id="enwrap-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 108</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 115</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">enwrap</span>(<span class="ruby-identifier">target</span>)
-  <span class="ruby-comment">#--</span>
+  <span class="ruby-comment">#</span>
   <span class="ruby-comment"># Shamelessly cadged from delegator.rb</span>
   <span class="ruby-comment">#</span>
   <span class="ruby-identifier">eigenklass</span> = <span class="ruby-identifier">eval</span>(<span class="ruby-string">'class &lt;&lt; target ; self ; end'</span>)
@@ -376,62 +310,6 @@ in the cache is unaffected.</p>
         </div><!-- enwrap-method -->
 
       
-        <div id="included-method" class="method-detail ">
-          <a name="method-c-included"></a>
-
-          
-          
-          <div class="method-heading">
-            <span class="method-callseq">=== Arguments</span>
-            
-            <span class="method-click-advice">click to toggle source</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">=== Exceptions</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">[<tt>InstantCache::Destroyed</tt>]</span>
-            
-          </div>
-          
-          
-
-          <div class="method-description">
-            
-            <h3>Description</h3>
-            
-
-            
-            <div class="method-source-code" id="included-source">
-<pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 739</span>
-<span class="ruby-keyword">def</span> <span class="ruby-identifier">included</span>(<span class="ruby-identifier">base_klass</span>)
-  <span class="ruby-identifier">base_eigenklass</span> = <span class="ruby-identifier">base_klass</span>.<span class="ruby-identifier">class_eval</span>(<span class="ruby-string">'class &lt;&lt; self ; self ; end'</span>)
-  <span class="ruby-identifier">base_eigenklass</span>.<span class="ruby-identifier">__send__</span>(<span class="ruby-value">:define_method</span>,
-                           <span class="ruby-value">:memcached_reader</span>,
-                           <span class="ruby-constant">EigenReader</span>)
-  <span class="ruby-identifier">base_eigenklass</span>.<span class="ruby-identifier">__send__</span>(<span class="ruby-value">:define_method</span>,
-                           <span class="ruby-value">:memcached_accessor</span>,
-                           <span class="ruby-constant">EigenAccessor</span>)
-  <span class="ruby-identifier">base_eigenklass</span>.<span class="ruby-identifier">__send__</span>(<span class="ruby-value">:define_method</span>,
-                           <span class="ruby-value">:memcached_counter</span>,
-                           <span class="ruby-constant">EigenCounter</span>)
-  <span class="ruby-keyword">return</span> <span class="ruby-keyword">nil</span>
-<span class="ruby-keyword">end</span></pre>
-            </div><!-- included-source -->
-            
-          </div>
-
-          
-
-          
-        </div><!-- included-method -->
-
-      
         <div id="unwrap-method" class="method-detail ">
           <a name="method-c-unwrap"></a>
 
@@ -461,14 +339,14 @@ previously fetched), this is a no-op.</p>
 </dd></dl>
 
 <h3>Exceptions</h3>
-<dl class="rdoc-list"><dt><em>None.</em></dt>
-<dd></dd></dl>
+
+<p><em>None.</em></p>
             
 
             
             <div class="method-source-code" id="unwrap-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 178</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 184</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">unwrap</span>(<span class="ruby-identifier">target</span>)
   <span class="ruby-identifier">remap</span> = <span class="ruby-identifier">target</span>.<span class="ruby-identifier">instance_variable_get</span>(<span class="ruby-value">:@_instantcache_method_map</span>)
   <span class="ruby-keyword">return</span> <span class="ruby-keyword">nil</span> <span class="ruby-keyword">unless</span> (<span class="ruby-identifier">remap</span>.<span class="ruby-identifier">kind_of?</span>(<span class="ruby-constant">Hash</span>))
@@ -502,38 +380,33 @@ previously fetched), this is a no-op.</p>
           <a name="method-i-name"></a>
 
           
-          
           <div class="method-heading">
-            <span class="method-callseq">=== Arguments</span>
-            
+            <span class="method-name">name</span><span
+              class="method-args">()</span>
             <span class="method-click-advice">click to toggle source</span>
-            
           </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">=== Exceptions</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">[<tt>InstantCache::Destroyed</tt>]</span>
-            
-          </div>
-          
           
 
           <div class="method-description">
             
-            <p>This should be overridden by inheritors; it’s used to form the name of
+            <h3>Description</h3>
+
+<p>This should be overridden by inheritors; it’s used to form the name of
 the memcached cell.</p>
 
-<h3>Description</h3>
+<h3>Arguments</h3>
+
+<p><em>None.</em></p>
+
+<h3>Exceptions</h3>
+
+<p><em>None.</em></p>
             
 
             
             <div class="method-source-code" id="name-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 766</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 1253</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">name</span>
   <span class="ruby-keyword">return</span> <span class="ruby-node">&quot;Unnamed-#{self.class.name}-object&quot;</span>
 <span class="ruby-keyword">end</span></pre>

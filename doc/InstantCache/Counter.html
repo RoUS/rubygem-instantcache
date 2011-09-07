@@ -65,6 +65,8 @@
         <h3 class="section-header">Methods</h3>
         <ul class="link-list">
           
+          <li><a href="#method-c-memcached_counter">::memcached_counter</a></li>
+          
           <li><a href="#method-c-new">::new</a></li>
           
           <li><a href="#method-i-decr">#decr</a></li>
@@ -153,7 +155,19 @@
       
 <p>Class for integer-only memcache cells, capable of atomic
 increment/decrement.  Basically the same as <a href="Blob.html">Blob</a>,
-except with rawmode forced to true.</p>
+except with a default reset value of zero and rawmode forced to true.</p>
+
+<p>However, counters have some additional features:</p>
+<ul><li>
+<p>They may only be set to integer values;</p>
+</li><li>
+<p><tt><em>varname</em>_increment</tt> and <tt><em>varname</em>_decrement</tt>
+methods, which provide access to the corresponding underlying memcache
+atomic integer operations;</p>
+</li><li>
+<p>Decrementing stops at zero, and will not result in negative numbers (a
+feature of memcache).</p>
+</li></ul>
 
     </div><!-- description -->
 
@@ -171,7 +185,8 @@ except with rawmode forced to true.</p>
         
           <dt><a name="RESET_VALUE">RESET_VALUE</a></dt>
           
-          <dd class="description"></dd>
+          <dd class="description"><p>When a cached ‘counter’ value is reset or cleared, that means
+‘zero’.</p></dd>
           
         
         </dl>
@@ -186,25 +201,20 @@ except with rawmode forced to true.</p>
         <h3 class="section-header">Public Class Methods</h3>
 
       
-        <div id="new-method" class="method-detail ">
-          <a name="method-c-new"></a>
+        <div id="memcached_counter-method" class="method-detail ">
+          <a name="method-c-memcached_counter"></a>
 
           
           
           <div class="method-heading">
-            <span class="method-callseq">=== Arguments</span>
+            <span class="method-callseq">memcached_counter(<i>symbol</i>[,...])</span>
             
             <span class="method-click-advice">click to toggle source</span>
             
           </div>
           
           <div class="method-heading">
-            <span class="method-callseq">=== Exceptions</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">[<tt>InstantCache::Destroyed</tt>]</span>
+            <span class="method-callseq">memcached_counter(<i>symbol</i>[,...]) { |symbol| ... }</span>
             
           </div>
           
@@ -213,15 +223,156 @@ except with rawmode forced to true.</p>
           <div class="method-description">
             
             <h3>Description</h3>
+
+<p>Access method declarator for an interlocked shared integer memcache-backed
+variable.</p>
+
+<p>This declarator sets up several methods relating to the variable.  If the
+name passed is <b><tt>:ivar</tt></b>, these methods are created for it:</p>
+<dl class="rdoc-list"><dt><em>ivar</em></dt>
+<dd>
+<p>Normal read accessor (<em>e.g.</em>, <tt>obj.ivar</tt>). (See <a
+href="Blob.html#method-i-get">Blob#get</a>)</p>
+</dd><dt><em>ivar</em>_reset</dt>
+<dd>
+<p>Resets the cache variable to the default ‘uninitialised’ value. (See <a
+href="Blob.html#method-i-reset">Blob#reset</a>)</p>
+</dd><dt><em>ivar</em>_expiry</dt>
+<dd>
+<p>Returns the current cache lifetime (default 0). (See <a
+href="Blob.html#attribute-i-expiry">Blob#expiry</a>)</p>
+</dd><dt><em>ivar</em>_expiry=</dt>
+<dd>
+<p>Sets the cache lifetime. (See <a
+href="Blob.html#attribute-i-expiry">Blob#expiry=</a>)</p>
+</dd><dt><em>ivar</em>_lock</dt>
+<dd>
+<p>Tries to get an exclusive lock on the variable. (See <a
+href="Blob.html#method-i-lock">Blob#lock</a>)</p>
+</dd><dt><em>ivar</em>_unlock</dt>
+<dd>
+<p>Unlocks the variable if locked. (See <a
+href="Blob.html#method-i-unlock">Blob#unlock</a>)</p>
+</dd><dt><em>ivar</em>_destroyed?</dt>
+<dd>
+<p>Returns true if variable is disconnected from the cache and unusable. (See
+<a href="Blob.html#method-i-destroyed-3F">Blob#destroyed?</a>)</p>
+</dd><dt><em>ivar</em>_destroy!</dt>
+<dd>
+<p>Disconnects the variable from the cache and makes it unusable. (See <a
+href="Blob.html#method-i-destroy-21">Blob#destroy!</a>)</p>
+</dd></dl>
+
+<p>(These are the same methods created for a <a
+href="Blob.html#method-c-memcached_accessor">Blob::memcached_accessor</a>
+declaration.)</p>
+
+<p>In addition, the following counter-specific methods are created:</p>
+<dl class="rdoc-list"><dt><em>ivar</em>_increment</dt>
+<dd>
+<p>Adds the specified value to the cache variable. (See <a
+href="Counter.html#method-i-increment">Counter#increment</a>)</p>
+</dd><dt><em>ivar</em>_incr</dt>
+<dd>
+<p>Alias for <tt><em>ivar</em>_increment</tt>.</p>
+</dd><dt><em>ivar</em>_decrement</dt>
+<dd>
+<p>Subtracts from the cache variable. (See <a
+href="Counter.html#method-i-decrement">Counter#decrement</a>)</p>
+</dd><dt><em>ivar</em>_decr</dt>
+<dd>
+<p>Alias for <tt><em>ivar</em>_decrement</tt>.</p>
+</dd></dl>
+
+<h3>Arguments</h3>
+<dl class="rdoc-list"><dt><em>symbol</em></dt>
+<dd>
+<p>As with other Ruby accessor declarations, the argument list consists of one
+or more variable names represented as symbols (<em>e.g.</em>,
+<tt>:variablename</tt>).</p>
+</dd><dt><em>{block}</em></dt>
+<dd>
+<p>If a block is supplied, its return value must be a string, which will be
+used as the name of the memcached cell backing the variable.  The argument
+to the block is the name of the variable as passed to the accessor
+declaration.</p>
+</dd></dl>
+
+<h3>Exceptions</h3>
+
+<p><em>None.</em></p>
+            
+
+            
+            <div class="method-source-code" id="memcached_counter-source">
+<pre>
+<span class="ruby-comment"># File lib/instantcache.rb, line 857</span>
+<span class="ruby-keyword">def</span> <span class="ruby-identifier">memcached_counter</span>(*<span class="ruby-identifier">args</span>, &amp;<span class="ruby-identifier">block</span>) ; <span class="ruby-keyword">end</span></pre>
+            </div><!-- memcached_counter-source -->
+            
+          </div>
+
+          
+
+          
+        </div><!-- memcached_counter-method -->
+
+      
+        <div id="new-method" class="method-detail ">
+          <a name="method-c-new"></a>
+
+          
+          
+          <div class="method-heading">
+            <span class="method-callseq">memcached_counter(<i>symbol</i>[,...])</span>
+            
+            <span class="method-click-advice">click to toggle source</span>
+            
+          </div>
+          
+          <div class="method-heading">
+            <span class="method-callseq">memcached_counter(<i>symbol</i>[,...]) { |symbol| ... }</span>
+            
+          </div>
+          
+          
+
+          <div class="method-description">
+            
+            <h3>Description</h3>
+
+<p>As with Blob#initialize, this is not intended to be called directly. 
+Rather, instances are declared with the #memcached_counter class method.</p>
+
+<h3>Arguments</h3>
+<dl class="rdoc-list"><dt><em>symbol</em></dt>
+<dd>
+<p>As with other Ruby accessor declarations, the argument list consists of one
+or more variable names represented as symbols (<em>e.g.</em>,
+<tt>:variablename</tt>).</p>
+</dd></dl>
+
+<p>:call-seq:</p>
+<dl class="rdoc-list"><dt><em>{block}</em></dt>
+<dd>
+<p>If a block is supplied, its return value must be a string, which will be
+used as the name of the memcached cell backing the variable.  The argument
+to the block is the name of the variable as passed to the accessor
+declaration.</p>
+</dd></dl>
+
+<h3>Exceptions</h3>
+
+<p><em>None.</em></p>
             
 
             
             <div class="method-source-code" id="new-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 489</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 890</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">inival</span>=<span class="ruby-keyword">nil</span>)
   <span class="ruby-ivar">@rawmode</span> = <span class="ruby-keyword">true</span>
-  <span class="ruby-keyword">super</span>
+  <span class="ruby-keyword">return</span> <span class="ruby-keyword">super</span>
 <span class="ruby-keyword">end</span></pre>
             </div><!-- new-source -->
             
@@ -274,19 +425,9 @@ except with rawmode forced to true.</p>
           
           
           <div class="method-heading">
-            <span class="method-callseq">=== Arguments</span>
+            <span class="method-callseq">decrement[(<i>by_amount</i>)] => <i>Integer</i></span>
             
             <span class="method-click-advice">click to toggle source</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">=== Exceptions</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">[<tt>InstantCache::Destroyed</tt>]</span>
             
           </div>
           
@@ -294,17 +435,42 @@ except with rawmode forced to true.</p>
 
           <div class="method-description">
             
-            <p>As for <a href="Counter.html#method-i-increment">increment</a>.</p>
+            <h3>Description</h3>
 
-<h3>Description</h3>
+<p>Decrement a memcached cell.  This <b>only</b> works in raw mode, which is
+why it’s in this class rather than <a href="Blob.html">Blob</a>, but
+it’s implicitly atomic according to memcache semantics.</p>
+
+<h3>Arguments</h3>
+<dl class="rdoc-list"><dt><em>by_amount</em></dt>
+<dd>
+<p>An integer amount by which to reduce the value of the variable; default is
+1.</p>
+</dd></dl>
+
+<h3>Exceptions</h3>
+<dl class="rdoc-list"><dt><tt><a href="CounterIntegerOnly.html">InstantCache::CounterIntegerOnly</a></tt></dt>
+<dd>
+<p>The supplied value was not an integer, and the cache was not changed.</p>
+</dd><dt><tt><a href="Destroyed.html">InstantCache::Destroyed</a></tt></dt>
+<dd>
+<p>Cache value instance has been destroyed and is no longer usable. The value
+in the cache is unaffected.</p>
+</dd></dl>
             
 
             
             <div class="method-source-code" id="decrement-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 553</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 993</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">decrement</span>(<span class="ruby-identifier">amt</span>=<span class="ruby-value">1</span>)
   <span class="ruby-identifier">raise</span> <span class="ruby-constant">Destroyed</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>) <span class="ruby-keyword">if</span> (<span class="ruby-keyword">self</span>.<span class="ruby-identifier">destroyed?</span>)
+  <span class="ruby-keyword">unless</span> (<span class="ruby-identifier">amt</span>.<span class="ruby-identifier">kind_of?</span>(<span class="ruby-constant">Integer</span>))
+    <span class="ruby-identifier">raise</span> <span class="ruby-constant">CounterIntegerOnly</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">ivar_name</span>.<span class="ruby-identifier">inspect</span>)
+  <span class="ruby-keyword">end</span>
+  <span class="ruby-comment">#</span>
+  <span class="ruby-comment"># TODO: Another instance of poor-man's-cache-location; see #reset</span>
+  <span class="ruby-comment">#</span>
   <span class="ruby-keyword">return</span> <span class="ruby-constant">InstantCache</span>.<span class="ruby-identifier">cache_object</span>.<span class="ruby-identifier">decr</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>, <span class="ruby-identifier">amt</span>)
 <span class="ruby-keyword">end</span></pre>
             </div><!-- decrement-source -->
@@ -325,38 +491,37 @@ except with rawmode forced to true.</p>
           <a name="method-i-get"></a>
 
           
-          
           <div class="method-heading">
-            <span class="method-callseq">=== Arguments</span>
-            
+            <span class="method-name">get</span><span
+              class="method-args">()</span>
             <span class="method-click-advice">click to toggle source</span>
-            
           </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">=== Exceptions</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">[<tt>InstantCache::Destroyed</tt>]</span>
-            
-          </div>
-          
           
 
           <div class="method-description">
             
-            <p>Get the value through the superclass, and convert to integer. (Raw values
-get stored as strings, since they’re unmarshalled.)</p>
+            <h3>Description</h3>
 
-<h3>Description</h3>
+<p>Fetch the cached value through the superclass, and convert it to integer. 
+(Raw values get stored as strings, since they’re unmarshalled.)</p>
+
+<h3>Arguments</h3>
+
+<p><em>None.</em></p>
+
+<h3>Exceptions</h3>
+<dl class="rdoc-list"><dt><tt><a href="Destroyed.html">InstantCache::Destroyed</a></tt></dt>
+<dd>
+<p>Cache value instance has been destroyed and is no longer usable. The value
+in the cache is unaffected. (From <a
+href="Blob.html#method-i-get">Blob#get</a>)</p>
+</dd></dl>
             
 
             
             <div class="method-source-code" id="get-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 505</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 910</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">get</span>
   <span class="ruby-keyword">return</span> <span class="ruby-keyword">super</span>.<span class="ruby-identifier">to_i</span>
 <span class="ruby-keyword">end</span></pre>
@@ -405,19 +570,9 @@ get stored as strings, since they’re unmarshalled.)</p>
           
           
           <div class="method-heading">
-            <span class="method-callseq">=== Arguments</span>
+            <span class="method-callseq">increment[(<i>by_amount</i>)] => <i>Integer</i></span>
             
             <span class="method-click-advice">click to toggle source</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">=== Exceptions</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">[<tt>InstantCache::Destroyed</tt>]</span>
             
           </div>
           
@@ -425,18 +580,42 @@ get stored as strings, since they’re unmarshalled.)</p>
 
           <div class="method-description">
             
-            <p>Increment a memcached raw cell.  This <b>only</b> works in raw mode, but
-it’s atomic.</p>
+            <h3>Description</h3>
 
-<h3>Description</h3>
+<p>Increment a memcached cell.  This <b>only</b> works in raw mode, which is
+why it’s in this class rather than <a href="Blob.html">Blob</a>, but
+it’s implicitly atomic according to memcache semantics.</p>
+
+<h3>Arguments</h3>
+<dl class="rdoc-list"><dt><em>by_amount</em></dt>
+<dd>
+<p>An integer amount by which to increase the value of the variable; default
+is 1.</p>
+</dd></dl>
+
+<h3>Exceptions</h3>
+<dl class="rdoc-list"><dt><tt><a href="CounterIntegerOnly.html">InstantCache::CounterIntegerOnly</a></tt></dt>
+<dd>
+<p>The supplied value was not an integer, and the cache was not changed.</p>
+</dd><dt><tt><a href="Destroyed.html">InstantCache::Destroyed</a></tt></dt>
+<dd>
+<p>Cache value instance has been destroyed and is no longer usable. The value
+in the cache is unaffected.</p>
+</dd></dl>
             
 
             
             <div class="method-source-code" id="increment-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 537</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 959</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">increment</span>(<span class="ruby-identifier">amt</span>=<span class="ruby-value">1</span>)
   <span class="ruby-identifier">raise</span> <span class="ruby-constant">Destroyed</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>) <span class="ruby-keyword">if</span> (<span class="ruby-keyword">self</span>.<span class="ruby-identifier">destroyed?</span>)
+  <span class="ruby-keyword">unless</span> (<span class="ruby-identifier">amt</span>.<span class="ruby-identifier">kind_of?</span>(<span class="ruby-constant">Integer</span>))
+    <span class="ruby-identifier">raise</span> <span class="ruby-constant">CounterIntegerOnly</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">ivar_name</span>.<span class="ruby-identifier">inspect</span>)
+  <span class="ruby-keyword">end</span>
+  <span class="ruby-comment">#</span>
+  <span class="ruby-comment"># TODO: Another instance of poor-man's-cache-location; see #reset</span>
+  <span class="ruby-comment">#</span>
   <span class="ruby-keyword">return</span> <span class="ruby-constant">InstantCache</span>.<span class="ruby-identifier">cache_object</span>.<span class="ruby-identifier">incr</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">name</span>, <span class="ruby-identifier">amt</span>)
 <span class="ruby-keyword">end</span></pre>
             </div><!-- increment-source -->
@@ -457,37 +636,42 @@ it’s atomic.</p>
           <a name="method-i-set"></a>
 
           
-          
           <div class="method-heading">
-            <span class="method-callseq">=== Arguments</span>
-            
+            <span class="method-name">set</span><span
+              class="method-args">(val)</span>
             <span class="method-click-advice">click to toggle source</span>
-            
           </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">=== Exceptions</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">[<tt>InstantCache::Destroyed</tt>]</span>
-            
-          </div>
-          
           
 
           <div class="method-description">
             
-            <p>Store a value as an integer, and return it.</p>
+            <h3>Description</h3>
 
-<h3>Description</h3>
+<p>Store a value as an integer, and return the value as stored. See <a
+href="Blob.html#method-i-set">Blob#set</a> for the significance of this
+operation.</p>
+
+<h3>Arguments</h3>
+<dl class="rdoc-list"><dt><em>val</em></dt>
+<dd>
+<p>New value to be stored in the cached cell.</p>
+</dd></dl>
+
+<h3>Exceptions</h3>
+<dl class="rdoc-list"><dt><tt><a href="CounterIntegerOnly.html">InstantCache::CounterIntegerOnly</a></tt></dt>
+<dd>
+<p>The supplied value was not an integer, and was not stored.</p>
+</dd><dt><tt><a href="Destroyed.html">InstantCache::Destroyed</a></tt></dt>
+<dd>
+<p>Cache value instance has been destroyed and is no longer usable. The value
+in the cache is unaffected.</p>
+</dd></dl>
             
 
             
             <div class="method-source-code" id="set-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache.rb, line 519</span>
+<span class="ruby-comment"># File lib/instantcache.rb, line 930</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">set</span>(<span class="ruby-identifier">val</span>)
   <span class="ruby-keyword">unless</span> (<span class="ruby-identifier">val</span>.<span class="ruby-identifier">kind_of?</span>(<span class="ruby-constant">Integer</span>))
     <span class="ruby-identifier">raise</span> <span class="ruby-constant">CounterIntegerOnly</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword">self</span>.<span class="ruby-identifier">ivar_name</span>.<span class="ruby-identifier">inspect</span>)

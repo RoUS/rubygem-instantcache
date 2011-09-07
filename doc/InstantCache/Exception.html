@@ -197,7 +197,7 @@ the infrastructure needed by the individual specific exceptions.</p>
             
             <div class="method-source-code" id="new-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache/exceptions.rb, line 61</span>
+<span class="ruby-comment"># File lib/instantcache/exceptions.rb, line 69</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">initialize</span>(*<span class="ruby-identifier">args</span>)
   <span class="ruby-ivar">@appargs</span> = <span class="ruby-identifier">args</span>.<span class="ruby-identifier">dup</span>
   <span class="ruby-keyword">super</span>(<span class="ruby-identifier">args</span>[<span class="ruby-value">0</span>])
@@ -225,35 +225,41 @@ the infrastructure needed by the individual specific exceptions.</p>
           <a name="method-i-message"></a>
 
           
-          
           <div class="method-heading">
-            <span class="method-callseq">=== Arguments</span>
-            
+            <span class="method-name">message</span><span
+              class="method-args">()</span>
             <span class="method-click-advice">click to toggle source</span>
-            
           </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">=== Exceptions</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">[<tt>InstantCache::Destroyed</tt>]</span>
-            
-          </div>
-          
           
 
           <div class="method-description">
             
             <h3>Description</h3>
+
+<p>This is an override of the standard exception <tt>message</tt> method,
+enhanced to deal with our with-or-without-arguments invocation decision
+mechanism.</p>
+
+<p>If the current class has a <b><tt>MessageFormat</tt></b> constant array
+defined, the first element will be used for the exception message if no
+arguments were passed to the invocation. Otherwise, the second element of
+the <tt>MessageFormat</tt> array will be treated as a ‘%’ format string
+and the invocation arguments as input to the formatting process, the result
+of which becomes the exception message string.</p>
+
+<h3>Arguments</h3>
+
+<p><em>None.</em></p>
+
+<h3>Exceptions</h3>
+
+<p><em>None.</em></p>
             
 
             
             <div class="method-source-code" id="message-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache/exceptions.rb, line 76</span>
+<span class="ruby-comment"># File lib/instantcache/exceptions.rb, line 97</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">message</span>
   <span class="ruby-keyword">if</span> (<span class="ruby-keyword">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">constants</span>.<span class="ruby-identifier">include?</span>(<span class="ruby-string">'MessageFormat'</span>))
     <span class="ruby-identifier">fmt</span> = <span class="ruby-keyword">self</span>.<span class="ruby-identifier">class</span><span class="ruby-operator">::</span><span class="ruby-constant">MessageFormat</span>[<span class="ruby-ivar">@appargs</span>.<span class="ruby-identifier">empty?</span> <span class="ruby-operator">?</span> <span class="ruby-value">0</span> <span class="ruby-operator">:</span> <span class="ruby-value">1</span>]
@@ -275,35 +281,33 @@ the infrastructure needed by the individual specific exceptions.</p>
           <a name="method-i-to_s"></a>
 
           
-          
           <div class="method-heading">
-            <span class="method-callseq">=== Arguments</span>
-            
+            <span class="method-name">to_s</span><span
+              class="method-args">()</span>
             <span class="method-click-advice">click to toggle source</span>
-            
           </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">=== Exceptions</span>
-            
-          </div>
-          
-          <div class="method-heading">
-            <span class="method-callseq">[<tt>InstantCache::Destroyed</tt>]</span>
-            
-          </div>
-          
           
 
           <div class="method-description">
             
             <h3>Description</h3>
+
+<p>Return the message text of the exception as a string, after applying any
+appropriate formating.</p>
+
+<h3>Arguments</h3>
+
+<p><em>None.</em></p>
+
+<h3>Exceptions</h3>
+
+<p><em>None.</em></p>
             
 
             
             <div class="method-source-code" id="to_s-source">
 <pre>
-<span class="ruby-comment"># File lib/instantcache/exceptions.rb, line 91</span>
+<span class="ruby-comment"># File lib/instantcache/exceptions.rb, line 116</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier">to_s</span>
   <span class="ruby-keyword">return</span> <span class="ruby-keyword">self</span>.<span class="ruby-identifier">message</span>
 <span class="ruby-keyword">end</span></pre>

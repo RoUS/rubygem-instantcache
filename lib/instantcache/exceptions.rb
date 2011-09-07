@@ -1,28 +1,5 @@
 # -*- coding: utf-8 -*-
 #
-# = instantcache/exceptions.rb --- InstantCache exceptions
-#
-# Author::      Ken Coar
-# Copyright::   Copyright © 2011 Ken Coar
-# License::     Apache Licence 2.0
-#
-# == Description
-#
-# InstantCache reports problems using Ruby's exception mechanism.  Its
-# exceptions are a little different from the usual run-of-the-mill
-# ones, however.  Each exception declaration (aside from the
-# superclass) consists solely of a constant named
-# <tt>MessageFormat</tt>, which is a two-element array of strings.
-# The first element is the default text of the message, which is used
-# when the exception is raised without arguments.  <i>E.g.</i>,
-#
-#   raise InstantCache::Destroyed
-#
-# The second element of the <tt>MessageFormat</tt> array is utilised
-# when a new instance of the exception is created, and the
-# constructor's arguments are used as <tt>sprintf</tt>-style arguments
-# with the <tt>MessageFormat</tt> text.
-#
 #--
 #   Copyright © 2011 Ken Coar
 #
@@ -42,6 +19,31 @@
 module InstantCache
 
   #
+  # = InstantCache exceptions
+  #
+  # Author::      Ken Coar
+  # Copyright::   Copyright © 2011 Ken Coar
+  # License::     Apache Licence 2.0
+  #
+  # == Description
+  #
+  # InstantCache reports problems using Ruby's exception mechanism.  Its
+  # exceptions are a little different from the usual run-of-the-mill
+  # ones, however.  Each exception declaration (aside from the
+  # superclass) consists solely of a constant named
+  # <tt>MessageFormat</tt>, which is a two-element array of strings.
+  # The first element is the default text of the message, which is used
+  # when the exception is raised without arguments.  <i>E.g.</i>,
+  #
+  #   raise InstantCache::Destroyed
+  #
+  # The second element of the <tt>MessageFormat</tt> array is utilised
+  # when a new instance of the exception is created, and the
+  # constructor's arguments are used as <tt>sprintf</tt>-style arguments
+  # with the <tt>MessageFormat</tt> text.
+  #
+
+  #
   # The superclass for all of the InstantCache exceptions.  It
   # provides all the infrastructure needed by the individual specific
   # exceptions.
@@ -57,7 +59,13 @@ module InstantCache
     # N/A
     #
     # === Exceptions
-    # [<tt>InstantCache::IncompleteException</tt>] This class was subclassed, but the subclass didn't declare the requisite <tt>MessageFormat</tt> constant.
+    # [<tt>InstantCache::IncompleteException</tt>] This class was
+    #                                              subclassed, but the
+    #                                              subclass didn't
+    #                                              declare the
+    #                                              requisite
+    #                                              <tt>MessageFormat</tt>
+    #                                              constant.
     #
     def initialize(*args)
       @appargs = args.dup
@@ -65,14 +73,27 @@ module InstantCache
       unless (self.class.constants.include?('MessageFormat'))
         raise IncompleteException.new(self.class.name)
       end
-    end
+    end                         # End of def initialize
 
     #
     # === Description
-    # :call-seq:
+    # This is an override of the standard exception <tt>message</tt>
+    # method, enhanced to deal with our with-or-without-arguments
+    # invocation decision mechanism.
+    #
+    # If the current class has a <b><tt>MessageFormat</tt></b>
+    # constant array defined, the first element will be used for the
+    # exception message if no arguments were passed to the invocation.
+    # Otherwise, the second element of the <tt>MessageFormat</tt>
+    # array will be treated as a '%' format string and the invocation
+    # arguments as input to the formatting process, the result of
+    # which becomes the exception message string.
+    #
     # === Arguments
+    # <i>None.</i>
+    #
     # === Exceptions
-    # [<tt>InstantCache::Destroyed</tt>]
+    # <i>None.</i>
     #
     def message
       if (self.class.constants.include?('MessageFormat'))
@@ -80,20 +101,24 @@ module InstantCache
         return fmt % [ *@appargs ]
       end
       return @message
-    end
+    end                         # End of def message
 
     #
     # === Description
-    # :call-seq:
+    # Return the message text of the exception as a string, after
+    # applying any appropriate formating.
+    #
     # === Arguments
+    # <i>None.</i>
+    #
     # === Exceptions
-    # [<tt>InstantCache::Destroyed</tt>]
+    # <i>None.</i>
     #
     def to_s
       return self.message
-    end
+    end                         # End of def to_s
 
-  end
+  end                           # End of class Exception
 
   #
   # Some exception was raised with the wrong arguments.
@@ -110,7 +135,7 @@ module InstantCache
                      'improperly-coded exception raised',
                      'improperly-coded exception "%s" raised',
                     ]
-  end
+  end                           # End of class IncompleteException
 
   #
   # Once a variable has been hit by the 'destroy!' method, it
@@ -128,7 +153,7 @@ module InstantCache
                      'attempt to access destroyed variable',
                      'attempt to access destroyed variable "%s"',
                     ]
-  end
+  end                           # End of class Destroyed
 
   #
   # Our record of the locked status of a cell differs from the information
@@ -148,7 +173,7 @@ module InstantCache
                      "interlock cell inconsistency\n" +
                      "\tcell='%s', expected='%s', actual='%s'",
                     ]
-  end
+  end                           # End of class LockInconsistency
 
   #
   # User-supplied names are only permitted for shared variables;
@@ -164,10 +189,10 @@ module InstantCache
     #   
     MessageFormat = [
                      'custom names are only permitted for shared variables',
-                     'custom names are only permitted for shared variables; ' +
-                     "'%s' is labelled as private",
+                     ('custom names are only permitted for shared variables; ' +
+                      "'%s' is labelled as private"),
                     ]
-  end
+  end                           # End of class SharedOnly
 
   #
   # Counter variables are only permitted to be frobbed with integers.
@@ -185,15 +210,17 @@ module InstantCache
                      'variables declared as counters are integer-only',
                      'variables declared as counters are integer-only: %s',
                     ]
-  end
+  end                           # End of class CounterIntegerOnly
 
   #
   # Because of the annotation of returned values with callback singleton
   # methods, it's possible for multiple user variables to hold references
   # to a cell.  <i>E.g.</i>, one might remember the cell as a hash and
   # modify an element, even though the cell has actually be explicitly
-  # set to something else.  Thie exception is raise if there's a mismatch
+  # set to something else.  This exception is raised if there's a mismatch
   # when an annotation tries to update the cell.
+  #
+  # TODO: This is not working properly yet.
   #
   class IncompatibleType < InstantCache::Exception
     #
@@ -208,6 +235,6 @@ module InstantCache
                      'variable class "%s" incompatible with class "%s" ' +
                      'of cached variable "%s"',
                     ]
-  end
+  end                           # End of class IncompatibleType
 
 end                             # End of module InstantCache

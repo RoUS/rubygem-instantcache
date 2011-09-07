@@ -24,7 +24,7 @@
   <div id="metadata">
     <dl>
       <dt class="modified-date">Last Modified</dt>
-      <dd class="modified-date">Wed Aug 31 17:56:34 -0400 2011</dd>
+      <dd class="modified-date">Wed Sep 07 14:09:49 -0400 2011</dd>
 
       
       <dt class="requires">Requires</dt>
@@ -44,35 +44,6 @@
     <div class="description">
       <h2>Description</h2>
       
-<h1>instantcache/exceptions.rb — <a href="../../InstantCache.html">InstantCache</a> exceptions</h1>
-<table class="rdoc-list"><tr><td class="rdoc-term"><p>Author</p></td>
-<td>
-<p>Ken Coar</p>
-</td></tr><tr><td class="rdoc-term"><p>Copyright</p></td>
-<td>
-<p>Copyright © 2011 Ken Coar</p>
-</td></tr><tr><td class="rdoc-term"><p>License</p></td>
-<td>
-<p>Apache Licence 2.0</p>
-</td></tr></table>
-
-<h2>Description</h2>
-
-<p><a href="../../InstantCache.html">InstantCache</a> reports problems using
-Ruby’s exception mechanism.  Its exceptions are a little different from
-the usual run-of-the-mill ones, however.  Each exception declaration (aside
-from the superclass) consists solely of a constant named
-<tt>MessageFormat</tt>, which is a two-element array of strings. The first
-element is the default text of the message, which is used when the
-exception is raised without arguments.  <em>E.g.</em>,</p>
-
-<pre>raise InstantCache::Destroyed</pre>
-
-<p>The second element of the <tt>MessageFormat</tt> array is utilised when a
-new instance of the exception is created, and the constructor’s arguments
-are used as <tt>sprintf</tt>-style arguments with the
-<tt>MessageFormat</tt> text.</p>
-
     </div>
     
   </div>
