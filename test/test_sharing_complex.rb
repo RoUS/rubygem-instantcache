@@ -1,7 +1,5 @@
 require File.dirname(__FILE__) + '/test_helper.rb'
 require 'thread'
-require 'ruby-debug'
-Debugger.start
 
 class TestInstantCacheComplexSharing < Test::Unit::TestCase
 

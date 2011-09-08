@@ -1,7 +1,7 @@
 History.txt
 LICENCE.txt
 Manifest.txt
-README.rdoc
+README.txt
 Rakefile
 instantcache.gemspec
 lib/instantcache.rb

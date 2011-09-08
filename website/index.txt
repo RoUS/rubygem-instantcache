@@ -1,0 +1,87 @@
+h1. InstantCache
+
+InstantCache provides accessor declarations that permit you to keep instance variables in a memcached cluster rather than local memory.
+
+h2. What
+
+
+h2. Installing
+
+<pre syntax="ruby">sudo gem install instantcache</pre>
+
+h2. The basics
+
+h2. Demonstration of usage
+
+<pre>
+require 'instantcache'
+class Foo
+  include InstantCache
+  memcached_accessor(InstantCache::SHARED, :sharedvar)
+end
+
+f = Foo.new
+f.sharedvar
+=> nil
+f.sharedvar = 17
+=> nil
+f.sharedvar = [17]
+=> [17]
+f.sharedvar << 23
+=> [17,23]
+</pre>
+
+
+h2. Forum
+
+"http://groups.google.com/group/instantcache":http://groups.google.com/group/instantcache
+
+TODO - create Google Group - instantcache
+
+h2. How to submit patches
+
+Read the "8 steps for fixing other people's code":http://drnicwilliams.com/2007/06/01/8-steps-for-fixing-other-peoples-code/ and for section "8b: Submit patch to Google Groups":http://drnicwilliams.com/2007/06/01/8-steps-for-fixing-other-peoples-code/#8b-google-groups, use the Google Group above.
+
+You can fetch the source from either:
+
+<% if rubyforge_project_id %>
+
+* rubyforge: "http://rubyforge.org/scm/?group_id=<%= rubyforge_project_id %>":http://rubyforge.org/scm/?group_id=<%= rubyforge_project_id %>
+
+<pre>git clone git://rubyforge.org/instantcache.git</pre>
+
+<% else %>
+
+* rubyforge: MISSING IN ACTION
+
+TODO - You can not created a RubyForge project, OR have not run <code>rubyforge config</code>
+yet to refresh your local rubyforge data with this projects' id information.
+
+When you do this, this message will magically disappear!
+
+Or you can hack website/index.txt and make it all go away!!
+
+<% end %>
+
+* github: "http://github.com/RoUS/rubygem-instantcache/tree/master":http://github.com/RoUS/rubygem-instantcache/tree/master
+
+<pre>git clone git://github.com/RoUS/rubygem-instantcache.git</pre>
+
+
+h3. Build and test instructions
+
+<pre>
+cd instantcache
+rake test
+rake install_gem
+</pre>
+
+
+h2. License
+
+This code is free to use under the terms of the Apache Licence V2.0. 
+
+h2. Contact
+
+Comments are welcome. Send an email to "The Rodent of Unusual Size":mailto:coar@rubyforge.org email via the "forum":http://groups.google.com/group/instantcache
+

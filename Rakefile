@@ -17,13 +17,15 @@ Hoe.plugin(:website)
 $hoe = Hoe.spec('instantcache') {
   self.developer('Ken Coar',
                  'coar@rubyforge.org')
+  self.readme_file = 'README.txt'
   #
   # TODO this is default value
   #
   self.rubyforge_name		= self.name
   self.version			= InstantCache::VERSION
   self.extra_deps		= [
-                                   ['versionomy','>= 0.4.0']
+                                   ['versionomy','>= 0.4.0'],
+                                   ['memcache-client','>= 1.8.5'],
                                   ]
 
 }

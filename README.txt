@@ -57,7 +57,7 @@ local memory.
 == REQUIREMENTS:
 
 * Gem ''versionomy''
-* Gem ''memcache''
+* Gem ''memcache-client''
 
 == INSTALL:
 

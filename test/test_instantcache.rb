@@ -1,6 +1,4 @@
 require File.dirname(__FILE__) + '/test_helper.rb'
-require 'ruby-debug'
-Debugger.start
 
 class TestInstantCache_01 < Test::Unit::TestCase
 

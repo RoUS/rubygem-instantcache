@@ -1,0 +1,96 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <link rel="stylesheet" href="stylesheets/screen.css" type="text/css" media="screen" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>
+      InstantCache
+  </title>
+  <script src="javascripts/rounded_corners_lite.inc.js" type="text/javascript"></script>
+<style>
+
+</style>
+  <script type="text/javascript">
+    window.onload = function() {
+      settings = {
+          tl: { radius: 10 },
+          tr: { radius: 10 },
+          bl: { radius: 10 },
+          br: { radius: 10 },
+          antiAlias: true,
+          autoPad: true,
+          validTags: ["div"]
+      }
+      var versionBox = new curvyCorners(settings, document.getElementById("version"));
+      versionBox.applyCornersToAll();
+    }
+  </script>
+</head>
+<body>
+<div id="main">
+
+    <h1>InstantCache</h1>
+    <div class="sidebar">
+      <div id="version" class="clickable" onclick='document.location = "http://rubyforge.org/projects/instantcache"; return false'>
+        <p>Get Version</p>
+        <a href="http://rubyforge.org/projects/instantcache" class="numbers">0.1.0a1</a>
+      </div>
+    </div>
+    <p>InstantCache provides accessor declarations that permit you to keep instance variables in a memcached cluster rather than local memory.</p>
+<h2>What</h2>
+<h2>Installing</h2>
+<p><pre class='syntax'><span class="ident">sudo</span> <span class="ident">gem</span> <span class="ident">install</span> <span class="ident">instantcache</span></pre></p>
+<h2>The basics</h2>
+<h2>Demonstration of usage</h2>
+<pre>
+require 'instantcache'
+class Foo
+  include InstantCache
+  memcached_accessor(InstantCache::SHARED, :sharedvar)
+end
+
+f = Foo.new
+f.sharedvar
+=&gt; nil
+f.sharedvar = 17
+=&gt; nil
+f.sharedvar = [17]
+=&gt; [17]
+f.sharedvar &lt;&lt; 23
+=&gt; [17,23]
+</pre>
+<h2>Forum</h2>
+<p><a href="http://groups.google.com/group/instantcache">http://groups.google.com/group/instantcache</a></p>
+<p><span class="caps">TODO</span> &#8211; create Google Group &#8211; instantcache</p>
+<h2>How to submit patches</h2>
+<p>Read the <a href="http://drnicwilliams.com/2007/06/01/8-steps-for-fixing-other-peoples-code/">8 steps for fixing other people&#8217;s code</a> and for section <a href="http://drnicwilliams.com/2007/06/01/8-steps-for-fixing-other-peoples-code/#8b-google-groups">8b: Submit patch to Google Groups</a>, use the Google Group above.</p>
+<p>You can fetch the source from either:</p>
+<ul>
+	<li>rubyforge: <a href="http://rubyforge.org/scm/?group_id=10054">http://rubyforge.org/scm/?group_id=10054</a></li>
+</ul>
+<pre>git clone git://rubyforge.org/instantcache.git</pre>
+<ul>
+	<li>github: <a href="http://github.com/RoUS/rubygem-instantcache/tree/master">http://github.com/RoUS/rubygem-instantcache/tree/master</a></li>
+</ul>
+<pre>git clone git://github.com/RoUS/rubygem-instantcache.git</pre>
+<h3>Build and test instructions</h3>
+<pre>
+cd instantcache
+rake test
+rake install_gem
+</pre>
+<h2>License</h2>
+<p>This code is free to use under the terms of the Apache Licence V2.0.</p>
+<h2>Contact</h2>
+<p>Comments are welcome. Send an email to <a href="mailto:coar@rubyforge.org">The Rodent of Unusual Size</a> email via the <a href="http://groups.google.com/group/instantcache">forum</a></p>
+    <p class="coda">
+      <a href="FIXME email">FIXME full name</a>, 8th September 2011<br>
+      Theme extended from <a href="http://rb2js.rubyforge.org/">Paul Battley</a>
+    </p>
+</div>
+
+<!-- insert site tracking codes here, like Google Urchin -->
+
+</body>
+</html>
