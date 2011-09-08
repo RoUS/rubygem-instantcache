@@ -111,9 +111,9 @@
         
           <li class="file"><a href="../History_txt.html">History.txt</a></li>
         
-          <li class="file"><a href="../Manifest_txt.html">Manifest.txt</a></li>
+          <li class="file"><a href="../LICENCE_txt.html">LICENCE.txt</a></li>
         
-          <li class="file"><a href="../PostInstall_txt.html">PostInstall.txt</a></li>
+          <li class="file"><a href="../Manifest_txt.html">Manifest.txt</a></li>
         
         </ul>
       </div>
@@ -521,7 +521,7 @@ question is shared, this <b>will</b> overwrite the current value if any!</p>
   <span class="ruby-comment"># Thus subclasses can get most of the setup work done with a</span>
   <span class="ruby-comment"># simple invocation of #super.</span>
   <span class="ruby-comment">#</span>
-  <span class="ruby-ivar">@rawmode</span> = <span class="ruby-keyword">false</span> <span class="ruby-keyword">if</span> (<span class="ruby-ivar">@rawmode</span>.<span class="ruby-identifier">nil?</span>)
+  <span class="ruby-ivar">@rawmode</span> <span class="ruby-operator">||=</span> <span class="ruby-keyword">false</span>
   <span class="ruby-ivar">@expiry</span> = <span class="ruby-value">0</span>
   <span class="ruby-ivar">@locked_by_us</span> = <span class="ruby-keyword">false</span>
   <span class="ruby-comment">#</span>

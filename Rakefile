@@ -18,10 +18,6 @@ $hoe = Hoe.spec('instantcache') {
   self.developer('Ken Coar',
                  'coar@rubyforge.org')
   #
-  # TODO remove if post-install message not required
-  #
-  self.post_install_message	= 'PostInstall.txt'
-  #
   # TODO this is default value
   #
   self.rubyforge_name		= self.name

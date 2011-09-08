@@ -9,12 +9,16 @@ which has accessors that allow you to declare 'instance variables'
 that are actually stored in a memcached cluster rather than
 local memory.
 
-== FEATURES/PROBLEMS:
+== FEATURES:
 
 * Provides ''memcached_reader'', ''memcached_accessor'', and ''memcached_counter'' accessor declarations.
 * Variables declared with ''memcached_counter'' are restricted to integer values, and are incrementable/decrementable atomically.
 * Variables may be shared, using cells in memcache named by the user, or may be private, with opaque names unique to each instance.
 * Variables may be locked and unlocked for atomic operations.
+
+== PROBLEMS:
+
+* Multiple references to a cached variable can get out of sync, leading to confusion if they are updated independently.
 
 == SYNOPSIS:
 
@@ -33,6 +37,10 @@ local memory.
 
   InstantCache.cache_object = MemCache.new('127.0.0.1:11211')
   foo = Foo.new
+  foo.c1 = 0
+  => 0
+  foo.private_a1 = nil
+  => nil
   foo.bar
   => 0                              # cell was incremented and then decremented
   foo.bar = 21
@@ -50,7 +58,6 @@ local memory.
 
 * Gem ''versionomy''
 * Gem ''memcache''
-
 
 == INSTALL:
 
@@ -236,15 +243,3 @@ local memory.
       of your accepting any such warranty or additional liability.
 
    END OF TERMS AND CONDITIONS
-
-   APPENDIX: How to apply the Apache License to your work.
-
-      To apply the Apache License to your work, attach the following
-      boilerplate notice, with the fields enclosed by brackets "[]"
-      replaced with your own identifying information. (Don't include
-      the brackets!)  The text should be enclosed in the appropriate
-      comment syntax for the file format. We also recommend that a
-      file or class name and description of purpose be included on the
-      same "printed page" as the copyright notice for easier
-      identification within third-party archives.
-

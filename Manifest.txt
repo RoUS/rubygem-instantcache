@@ -1,8 +1,9 @@
 History.txt
+LICENCE.txt
 Manifest.txt
-PostInstall.txt
 README.rdoc
 Rakefile
+instantcache.gemspec
 lib/instantcache.rb
 lib/instantcache/exceptions.rb
 script/console
@@ -10,3 +11,5 @@ script/destroy
 script/generate
 test/test_helper.rb
 test/test_instantcache.rb
+test/test_sharing_complex.rb
+test/test_sharing_simple.rb
