@@ -1,5 +1,7 @@
 = InstantCache - Variables in memcached
 
+* http://instantcache.rubyforge.org/
+
 * github:    http://github.com/RoUS/rubygem-instantcache
 * rubyforge: http://rubyforge.org/scm/?group_id=10054
 
