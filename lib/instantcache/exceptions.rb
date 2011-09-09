@@ -138,6 +138,24 @@ module InstantCache
   end                           # End of class IncompleteException
 
   #
+  # Obviously this package is dependent upon memcache being available
+  # and configured.  Gritch otherwise.
+  #
+  class NoCache < InstantCache::Exception
+    #
+    # ==== <tt>raise NoCache</tt>
+    #   => InstantCache::NoCache: InstantCache.cache_object not initialised
+    #
+    # ==== <tt>raise Destroyed.new('<i>arg</i>')</tt>
+    #   => InstantCache::NoCache: InstantCache.cache_object not initialised for "arg"
+    #   
+    MessageFormat = [
+                     'InstantCache.cache_object not initialised',
+                     'InstantCache.cache_object not initialised for "%s"',
+                    ]
+  end                           # End of class NoCache
+
+  #
   # Once a variable has been hit by the 'destroy!' method, it
   # becomes inaccessible to the instance.
   #
@@ -154,6 +172,25 @@ module InstantCache
                      'attempt to access destroyed variable "%s"',
                     ]
   end                           # End of class Destroyed
+
+  #
+  # If the instance variable is somehow overwritten, the methods that
+  # try to treat it as a Blob or Counter will fail.  This exception
+  # tries to make that failure less mysterious.
+  #
+  class ConnexionLost < InstantCache::Exception
+    #
+    # ==== <tt>raise ConnexionLost</tt>
+    #   => InstantCache::ConnexionLost: instance variable no longer connected to cache
+    #
+    # ==== <tt>raise Destroyed.new('<i>arg</i>')</tt>
+    #   => InstantCache::ConnexionLost: instance variable "@arg" no longer connected to cache
+    #   
+    MessageFormat = [
+                     'instance variable no longer connected to cache',
+                     'instance variable "@%s" no longer connected to cache',
+                    ]
+  end                           # End of class ConnexionLost
 
   #
   # Our record of the locked status of a cell differs from the information

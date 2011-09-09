@@ -73,7 +73,7 @@ module InstantCache
   #
   # The base Versionomy representation of the package version.
   #
-  Version = Versionomy.parse('0.1.0a1')
+  Version = Versionomy.parse('0.1.1')
 
   #
   # The package version-as-a-string.
@@ -102,6 +102,27 @@ module InstantCache
 
     #
     # === Description
+    # Wrapper for the @cache_object class variable.
+    #
+    # :call-seq:
+    # InstantCache.cache.<i>method</i>
+    #
+    # === Arguments
+    # <i>None.</i>
+    #
+    # === Exceptions
+    # [<tt>InstantCache::NoCache</tt>] Cache object unset or misset.
+    #
+    def cache                   # :nodoc
+      mco = (InstantCache.cache_object ||= nil)
+      return mco if (mco.kind_of?(MemCache))
+      raise NoCache
+    end
+
+    #
+    # === Description
+    # Add singleton wrapper methods to a copy of the cached value.
+    #
     # :call-seq:
     # InstantCache.enwrap(<i>cacheval</i>) => nil
     #
@@ -451,7 +472,7 @@ module InstantCache
       #
       # TODO: This can mess with subclassing; need better way to find the cache
       #
-      InstantCache.cache_object.set(self.name, rval, self.expiry, self.rawmode)
+      InstantCache.cache.set(self.name, rval, self.expiry, self.rawmode)
       return rval
     end
 
@@ -570,7 +591,7 @@ module InstantCache
       #
       # TODO: Another instance of poor-man's-cache-location; see #reset
       #
-      sts = InstantCache.cache_object.add(self.lock_name, @identity)
+      sts = InstantCache.cache.add(self.lock_name, @identity)
       @locked_by_us = (sts.to_s =~ %r!^STORED!) ? true : false
       return @locked_by_us
     end
@@ -610,7 +631,7 @@ module InstantCache
       #
       # TODO: Another instance of poor-man's-cache-location; see #reset
       #
-      sts = InstantCache.cache_object.get(self.lock_name) || false
+      sts = InstantCache.cache.get(self.lock_name) || false
       if (@locked_by_us && (sts != @identity))
         #
         # If we show we have the lock, but the lock cell doesn't exist
@@ -626,7 +647,7 @@ module InstantCache
       #
       # TODO: Another instance of poor-man's-cache-location; see #reset
       #
-      sts = InstantCache.cache_object.delete(self.lock_name)
+      sts = InstantCache.cache.delete(self.lock_name)
       if (sts !~ %r!^DELETED!)
         e = LockInconsistency.new(self.lock_name,
                                   '/DELETED/',
@@ -656,7 +677,7 @@ module InstantCache
       #
       # TODO: Another instance of poor-man's-cache-location; see #reset
       #
-      value = InstantCache.cache_object.get(self.name, self.rawmode)
+      value = InstantCache.cache.get(self.name, self.rawmode)
       begin
         #
         # Make a copy of the thing we fetched out of the cache.
@@ -717,8 +738,8 @@ module InstantCache
       #
       # We use both memcache#add and memcache#set for completeness.
       #
-      InstantCache.cache_object.add(self.name, val, self.expiry, self.rawmode)
-      InstantCache.cache_object.set(self.name, val, self.expiry, self.rawmode)
+      InstantCache.cache.add(self.name, val, self.expiry, self.rawmode)
+      InstantCache.cache.set(self.name, val, self.expiry, self.rawmode)
       #
       # Return the value as fetched through our accessor; this ensures
       # the proper annotation.
@@ -745,27 +766,6 @@ module InstantCache
       raise Destroyed.new(self.name) if (self.destroyed?)
       return self.get.__send__(:to_s, *args)
     end
-
-=begin
-    #
-    # === Description
-    # :call-seq:
-    # === Arguments
-    # === Exceptions
-    # <i>None.</i>
-    #
-    def method_missing(meth, *args)
-      methsym = meth.to_sym
-      return self.__send__(methsym, *args) if (self.respond_to?(methsym))
-      curval = self.get
-      lastval = curval.clone
-      opresult = curval.__send__(methsym, *args)
-      if (curval != lastval)
-        self.set(curval)
-      end
-      return opresult
-    end
-=end
 
   end                           # End of class Blob
 
@@ -965,7 +965,7 @@ module InstantCache
       #
       # TODO: Another instance of poor-man's-cache-location; see #reset
       #
-      return InstantCache.cache_object.incr(self.name, amt)
+      return InstantCache.cache.incr(self.name, amt)
     end
     alias_method(:incr, :increment)
 
@@ -999,7 +999,7 @@ module InstantCache
       #
       # TODO: Another instance of poor-man's-cache-location; see #reset
       #
-      return InstantCache.cache_object.decr(self.name, amt)
+      return InstantCache.cache.decr(self.name, amt)
     end
     alias_method(:decr, :decrement)
 
@@ -1017,6 +1017,23 @@ module InstantCache
     #
     # String constant used to set up most of the background magic
     # common to all of our types of cached variables.
+    #
+    # TODO: Resolve what to do if the instance variable is zapped
+    #
+    # One of the fortunate side-effects of all of the methods calling
+    # this first is that if the instance variable gets zapped somehow,
+    # the next access to it through of of our methods will create a
+    # new Blob or Counter object and put it into the instance variable
+    # before proceeding.
+    #
+    # One of the UNfortunate side effects of *that* is that if the
+    # object that was lost was locked, it cannot be unlocked through
+    # the normal paths -- only the blob object itself is supposed to
+    # lock and unlock itself.  It can be worked around, but that's for
+    # another day.
+    #
+    # If we decide against instantiating a new object, the ConnexionLost
+    # exception is ready to be pressed into service.
     #
     Setup =<<-'EOT'             # :nodoc:
       def _initialise_%s
@@ -1046,8 +1063,8 @@ module InstantCache
           unless (shared)
             mvar.reset
             finaliser = Proc.new {
-              InstantCache.cache_object.delete(mvar.name)
-              InstantCache.cache_object.delete(mvar.send(:lock_name))
+              InstantCache.cache.delete(mvar.name)
+              InstantCache.cache.delete(mvar.send(:lock_name))
             }
             ObjectSpace.define_finalizer(owner, finaliser)
           end

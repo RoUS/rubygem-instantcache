@@ -1,28 +1,63 @@
 = InstantCache - Variables in memcached
 
-* http://github.com/RoUS/rubygem-instantcache
+* github:    http://github.com/RoUS/rubygem-instantcache
+* rubyforge: http://rubyforge.org/scm/?group_id=10054
 
 == DESCRIPTION:
 
-rubygem-instantcache provides the InstantCache module, a mixin
+*rubygem-instantcache* provides the InstantCache module, a mixin
 which has accessors that allow you to declare 'instance variables'
 that are actually stored in a memcached cluster rather than
 local memory.
 
+== GLOSSARY:
+
+* <b><i>blob</i></b>, <b><i>blob object</i></b>, or <b><i>blob instance</i></b>: An instrumented InstantCache::Blob or InstantCache::Counter object that has been instantiated and stored in an <i>instance variable</i>.
+* <b><i>cached value</i></b>: The value actually stored in the memcached cluster.
+* <b><i>cache</i></b> (or <b><i>cached</i></b>) <b><i>variable</i></b>: an instance variable declared with one of the <tt>memcached_<i>xxx</i></tt> declarators and holding a <i>blob instance</i>.
+* <b><i>cell</i></b> or <b><i>cache cell</i></b>: The named location in the memcached cluster where a <i>cached value</i> is stored.
+* <b><i>instance variable</i></b>: This has its canonical meaning: a named cell local to an object.  <i>Blob objects</i> are stored in <i>instance variables</i> to form <i>cached variables</i>.
+
 == FEATURES:
 
-* Provides ''memcached_reader'', ''memcached_accessor'', and ''memcached_counter'' accessor declarations.
-* Variables declared with ''memcached_counter'' are restricted to integer values, and are incrementable/decrementable atomically.
-* Variables may be shared, using cells in memcache named by the user, or may be private, with opaque names unique to each instance.
-* Variables may be locked and unlocked for atomic operations.
+* Provides <tt>memcached_reader</tt>, <tt>memcached_accessor</tt>, and <tt>memcached_counter</tt> accessor declarations.
+* Cached variables declared with <tt>memcached_counter</tt> are restricted to integer values, and are incrementable/decrementable atomically.
+* Cached variables may be shared, using cells in memcache named by the user, or may be private, with opaque names unique to each instance.
+* Cached variables may be locked and unlocked for atomic operations.
+* If an instance variable is inadvertently overwritten, a new connexion to the cached value will be created (a new blob object will be instantiated) the next time one of InstantCache's methods is used to access it.
 
-== PROBLEMS:
+== CAVEATS AND WARNINGS
 
-* Multiple references to a cached variable can get out of sync, leading to confusion if they are updated independently.
+* InstantCache works by storing a specially-instrumented object in the actual instance variable.  References from within the class to an instance variable declared as a cached variable should use the "<tt>self.</tt>" prefix (<i>e.g.</i>, <tt>self.ivar</tt>) or the blob object's methods directly (<i>e.g.</i>, <tt>@ivar.get</tt> or <tt>@ivar.set(17)</tt>).
+* Direct assignment to an instance variable (<i>e.g.</i>, <tt>@ivar = 17</tt>) will lose the instrumented object and result in a new one being created.
+
+== KNOWN PROBLEMS:
+
+* If an cached variable is locked, and is then re-instantiated/reconnected, the variable will <b>remain</b> locked and cannot be unlocked.
+* Multiple references to a cached variable can get out of sync, leading to confusion if they are updated independently.  That is,
+    class Foo
+      include InstantCache
+      memcached_accessor(:ivar)
+    end
+
+    f = Foo.new
+    f.ivar = [1,2,3]
+    copy = f.ivar
+    f.ivar = 17
+    copy
+    => [1,2,3]
+    f.ivar
+    => 17
+    copy << 4
+    => [1,2,3,4]
+    f.ivar
+    => [1,2,3,4]
 
 == SYNOPSIS:
 
+  require 'memcache'
   require 'instantcache'
+
   class Foo
     include InstantCache
     memcached_counter(:c1)          # defaults to 0 if not already existant
@@ -56,8 +91,8 @@ local memory.
 
 == REQUIREMENTS:
 
-* Gem ''versionomy''
-* Gem ''memcache-client''
+* Gem <tt>{versionomy}[https://rubygems.org/gems/versionomy]</tt>
+* Gem <tt>{memcache-client}[https://rubygems.org/gems/memcache-client]</tt>
 
 == INSTALL:
 

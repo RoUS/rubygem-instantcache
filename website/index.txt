@@ -4,6 +4,13 @@ InstantCache provides accessor declarations that permit you to keep instance var
 
 h2. What
 
+Mixing in the <tt>InstantCache</tt> module gives you access to the following declarators:
+
+* <tt>memcached_accessor</tt>
+* <tt>memcached_reader</tt>
+* <tt>memcached_counter</tt>
+
+These allow you to declare instance variables whose values are actually stored in a memcached cluster rather than in local memory.  With appropriate naming, this allows you to share instance variables between different objects -- even on different systems.
 
 h2. Installing
 
@@ -11,15 +18,23 @@ h2. Installing
 
 h2. The basics
 
+InstantCache works by creating a special <i>blob object</i> and storing it in the instance variable.  This blob object intercepts methods aimed at the instance variable and redirects them to a value stored in a memcache cell instead.
+
+h2. Documentation
+
+The RDoc documentation for InstantCache may be found "here":rdoc/
+
 h2. Demonstration of usage
 
 <pre>
+require 'memcache'
 require 'instantcache'
 class Foo
   include InstantCache
   memcached_accessor(InstantCache::SHARED, :sharedvar)
 end
 
+InstantCache.cache_object = MemCache.new('127.0.0.1:11211')
 f = Foo.new
 f.sharedvar
 => nil
@@ -31,12 +46,12 @@ f.sharedvar << 23
 => [17,23]
 </pre>
 
+See the <tt>test_multilocking</tt> method in the "<tt>test/test_sharing_complex.rb</tt>":https://github.com/RoUS/rubygem-instantcache/blob/master/test/test_sharing_complex.rb script for an example/demonstration of variables being shared, locked, and unlocked between different objects and threads.
 
-h2. Forum
+h2. Forum/Mailing List
 
-"http://groups.google.com/group/instantcache":http://groups.google.com/group/instantcache
-
-TODO - create Google Group - instantcache
+* "InstantCache-discuss@rubyforge.org":mailto:InstantCache-discuss@rubyforge.org
+* "http://groups.google.com/group/rubygem-instantcache":http://groups.google.com/group/rubygem-instantcache
 
 h2. How to submit patches
 

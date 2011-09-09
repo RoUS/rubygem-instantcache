@@ -34,22 +34,34 @@
     <div class="sidebar">
       <div id="version" class="clickable" onclick='document.location = "http://rubyforge.org/projects/instantcache"; return false'>
         <p>Get Version</p>
-        <a href="http://rubyforge.org/projects/instantcache" class="numbers">0.1.0a1</a>
+        <a href="http://rubyforge.org/projects/instantcache" class="numbers">0.1.1</a>
       </div>
     </div>
     <p>InstantCache provides accessor declarations that permit you to keep instance variables in a memcached cluster rather than local memory.</p>
 <h2>What</h2>
+<p>Mixing in the <tt>InstantCache</tt> module gives you access to the following declarators:</p>
+<ul>
+	<li><tt>memcached_accessor</tt></li>
+	<li><tt>memcached_reader</tt></li>
+	<li><tt>memcached_counter</tt></li>
+</ul>
+<p>These allow you to declare instance variables whose values are actually stored in a memcached cluster rather than in local memory.  With appropriate naming, this allows you to share instance variables between different objects &#8212; even on different systems.</p>
 <h2>Installing</h2>
 <p><pre class='syntax'><span class="ident">sudo</span> <span class="ident">gem</span> <span class="ident">install</span> <span class="ident">instantcache</span></pre></p>
 <h2>The basics</h2>
+<p>InstantCache works by creating a special <i>blob object</i> and storing it in the instance variable.  This blob object intercepts methods aimed at the instance variable and redirects them to a value stored in a memcache cell instead.</p>
+<h2>Documentation</h2>
+<p>The RDoc documentation for InstantCache may be found <a href="rdoc/">here</a></p>
 <h2>Demonstration of usage</h2>
 <pre>
+require 'memcache'
 require 'instantcache'
 class Foo
   include InstantCache
   memcached_accessor(InstantCache::SHARED, :sharedvar)
 end
 
+InstantCache.cache_object = MemCache.new('127.0.0.1:11211')
 f = Foo.new
 f.sharedvar
 =&gt; nil
@@ -60,9 +72,12 @@ f.sharedvar = [17]
 f.sharedvar &lt;&lt; 23
 =&gt; [17,23]
 </pre>
-<h2>Forum</h2>
-<p><a href="http://groups.google.com/group/instantcache">http://groups.google.com/group/instantcache</a></p>
-<p><span class="caps">TODO</span> &#8211; create Google Group &#8211; instantcache</p>
+<p>See the <tt>test_multilocking</tt> method in the <a href="https://github.com/RoUS/rubygem-instantcache/blob/master/test/test_sharing_complex.rb"><tt>test/test_sharing_complex.rb</tt></a> script for an example/demonstration of variables being shared, locked, and unlocked between different objects and threads.</p>
+<h2>Forum/Mailing List</h2>
+<ul>
+	<li><a href="mailto:InstantCache-discuss@rubyforge.org">InstantCache-discuss@rubyforge.org</a></li>
+	<li><a href="http://groups.google.com/group/rubygem-instantcache">http://groups.google.com/group/rubygem-instantcache</a></li>
+</ul>
 <h2>How to submit patches</h2>
 <p>Read the <a href="http://drnicwilliams.com/2007/06/01/8-steps-for-fixing-other-peoples-code/">8 steps for fixing other people&#8217;s code</a> and for section <a href="http://drnicwilliams.com/2007/06/01/8-steps-for-fixing-other-peoples-code/#8b-google-groups">8b: Submit patch to Google Groups</a>, use the Google Group above.</p>
 <p>You can fetch the source from either:</p>
@@ -85,7 +100,7 @@ rake install_gem
 <h2>Contact</h2>
 <p>Comments are welcome. Send an email to <a href="mailto:coar@rubyforge.org">The Rodent of Unusual Size</a> email via the <a href="http://groups.google.com/group/instantcache">forum</a></p>
     <p class="coda">
-      <a href="FIXME email">FIXME full name</a>, 8th September 2011<br>
+      <a href="mailto:The.Rodent.of.Unusual.Size@GMail.Com">Ken Coar</a>, 9th September 2011<br>
       Theme extended from <a href="http://rb2js.rubyforge.org/">Paul Battley</a>
     </p>
 </div>
