@@ -58,7 +58,7 @@ table{width:100%;border: thin solid}.
   require 'instantcache'
   class Foo
     include InstantCache
-    memcached_accessor(InstantCache::SHARED, :sharedvar) { |vname| "shared-#{vname}" }
+    memcached_accessor(InstantCache::SHARED, :sharedvar) { &#124;vname&#124; "shared-#{vname}" }
   end
   &nbsp;
   InstantCache.cache_object = MemCache.new('127.0.0.1:11211')
