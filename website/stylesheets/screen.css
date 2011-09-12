@@ -77,8 +77,12 @@ td {
 .unknown {
 	color: #995000;
 }
-pre, code {
+.fullwidth {
+    width: 100%;
+}
+.code, pre, code {
   font-family: monospace;
+  white-space: pre;
   font-size: 90%;
   line-height: 1.4em;
   color: #ff8;

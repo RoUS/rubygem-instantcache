@@ -14,7 +14,7 @@ local memory.
 
 == GLOSSARY:
 
-* <b><i>blob</i></b>, <b><i>blob object</i></b>, or <b><i>blob instance</i></b>: An instrumented InstantCache::Blob or InstantCache::Counter object that has been instantiated and stored in an <i>instance variable</i>.
+- <b><i>blob</i></b>, <b><i>blob object</i></b>, or <b><i>blob instance</i></b>: An instrumented InstantCache::Blob or InstantCache::Counter object that has been instantiated and stored in an <i>instance variable</i>.
 * <b><i>cached value</i></b>: The value actually stored in the memcached cluster.
 * <b><i>cache</i></b> (or <b><i>cached</i></b>) <b><i>variable</i></b>: an instance variable declared with one of the <tt>memcached_<i>xxx</i></tt> declarators and holding a <i>blob instance</i>.
 * <b><i>cell</i></b> or <b><i>cache cell</i></b>: The named location in the memcached cluster where a <i>cached value</i> is stored.
